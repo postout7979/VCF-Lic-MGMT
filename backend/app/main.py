@@ -31,6 +31,10 @@ SCHEMA_PATCHES = [
     WHERE vi.connection_id = vc.id
     """,
     "ALTER TABLE license_items ADD COLUMN IF NOT EXISTS upload_name VARCHAR NOT NULL DEFAULT '기존 업로드'",
+    "ALTER TABLE vcf_ops_connections ADD COLUMN IF NOT EXISTS auth_method VARCHAR NOT NULL DEFAULT 'credentials'",
+    "ALTER TABLE vcf_ops_connections ADD COLUMN IF NOT EXISTS api_token VARCHAR",
+    "ALTER TABLE vcf_ops_connections ALTER COLUMN username DROP NOT NULL",
+    "ALTER TABLE vcf_ops_connections ALTER COLUMN password DROP NOT NULL",
 ]
 
 app = FastAPI(title="VCF License Management")

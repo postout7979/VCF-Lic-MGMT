@@ -20,76 +20,151 @@ def _check_reachable(host: str, port: int = 443) -> None:
         raise ValueError(f"VCF Operations 서버({host}:{port})에 연결할 수 없습니다: {exc}") from exc
 
 
-def collect_core_license_usage(host: str, username: str, password: str) -> tuple[str | None, list[dict]]:
-    """Authenticate against VCF 9 Operations and collect core license
-    allocation/usage rows.
+def _acquire_token(base: str, username: str, password: str) -> str:
+    """Log in with username/password via the Aria/VCF Operations suite-api
+    and return a session token.
 
-    This targets the documented SDDC Manager-style token auth
-    (`POST /v1/tokens`) and license inventory (`GET /v1/licenses`) endpoints,
-    reading several likely field-name variants defensively since VCF 9
-    Operations' exact REST surface for core-based licensing was not
-    confirmed against a live environment. If sync fails with a 404 or an
-    unexpected response shape, the endpoint path / field keys below are the
-    first thing to adjust against the target environment's actual API docs.
+    This is the product's actual, documented login endpoint
+    (`POST /suite-api/api/auth/token/acquire`). An earlier version of this
+    client mistakenly called SDDC Manager's `/v1/tokens` endpoint, which
+    belongs to a different VCF component and is why login was failing.
+    """
+    try:
+        resp = requests.post(
+            f"{base}/suite-api/api/auth/token/acquire",
+            json={"username": username, "password": password},
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            verify=False,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        resp.raise_for_status()
+    except requests.RequestException as exc:
+        raise ValueError(f"VCF Operations 인증에 실패했습니다: {exc}") from exc
 
-    Returns (detected_version, rows). Raises ValueError on any connection,
-    auth, or request failure.
+    body = resp.json() if resp.content else {}
+    token = body.get("token")
+    if not token:
+        raise ValueError("VCF Operations 인증 응답에 token이 없습니다.")
+    return token
+
+
+def collect_core_license_usage(
+    host: str,
+    auth_method: str,
+    username: str | None = None,
+    password: str | None = None,
+    api_token: str | None = None,
+) -> tuple[str | None, list[dict]]:
+    """Log in to VCF 9 Operations (via credentials or a pre-issued API
+    token) and collect core license allocation/usage rows.
+
+    Returns (detected_version, rows). Raises ValueError on a connection or
+    authentication failure. The license rows themselves are collected via a
+    best-effort resource/stat lookup (VCF Operations surfaces license
+    consumption as resource stats rather than a dedicated endpoint, and the
+    exact resource kind / stat key names are version-specific and weren't
+    confirmed against a live VCF 9 environment) — a failure or empty result
+    at that stage does not fail the sync, since auth succeeding is the part
+    that matters for "connected" status; adjust the resource/stat matching
+    below once the real key names for this environment are known.
     """
     _check_reachable(host)
     base = f"https://{host}"
 
+    if auth_method == "token":
+        if not api_token:
+            raise ValueError("API 토큰이 설정되지 않았습니다.")
+        token = api_token
+    else:
+        if not username or not password:
+            raise ValueError("사용자 이름과 비밀번호가 설정되지 않았습니다.")
+        token = _acquire_token(base, username, password)
+
+    headers = {"Authorization": f"vRealizeOpsToken {token}", "Accept": "application/json"}
+
+    # A lightweight authenticated call doubles as an auth check: a bad token
+    # surfaces here as a 401 instead of silently returning no data later.
     try:
-        auth_resp = requests.post(
-            f"{base}/v1/tokens",
-            json={"username": username, "password": password},
+        version_resp = requests.get(
+            f"{base}/suite-api/api/versions/current",
+            headers=headers,
             verify=False,
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
-        auth_resp.raise_for_status()
+        version_resp.raise_for_status()
     except requests.RequestException as exc:
-        raise ValueError(f"VCF Operations 인증에 실패했습니다: {exc}") from exc
+        raise ValueError(f"VCF Operations 인증이 거부되었습니다: {exc}") from exc
 
-    auth_body = auth_resp.json() if auth_resp.content else {}
-    token = auth_body.get("accessToken")
-    if not token:
-        raise ValueError("VCF Operations 인증 응답에 accessToken이 없습니다.")
-
-    headers = {"Authorization": f"Bearer {token}"}
-
-    detected_version = None
-    try:
-        version_resp = requests.get(
-            f"{base}/v1/releases/domains", headers=headers, verify=False, timeout=REQUEST_TIMEOUT_SECONDS
-        )
-        if version_resp.ok:
-            body = version_resp.json()
-            elements = body.get("elements", body if isinstance(body, list) else [])
-            if elements:
-                detected_version = elements[0].get("version")
-    except requests.RequestException:
-        detected_version = None
-
-    try:
-        lic_resp = requests.get(
-            f"{base}/v1/licenses", headers=headers, verify=False, timeout=REQUEST_TIMEOUT_SECONDS
-        )
-        lic_resp.raise_for_status()
-    except requests.RequestException as exc:
-        raise ValueError(f"라이센스 정보를 가져오지 못했습니다: {exc}") from exc
-
-    payload = lic_resp.json() if lic_resp.content else []
-    raw_items = payload.get("elements", payload if isinstance(payload, list) else []) if isinstance(payload, dict) else payload
+    version_body = version_resp.json() if version_resp.content else {}
+    detected_version = version_body.get("releaseName") or version_body.get("humanReadableReleaseName")
 
     rows: list[dict] = []
-    for lic in raw_items:
-        rows.append(
-            {
-                "license_key": lic.get("key") or lic.get("licenseKeyValue"),
-                "license_type": lic.get("licenseType") or lic.get("productType"),
-                "license_status": lic.get("status"),
-                "domain_name": lic.get("domainName") or lic.get("domainId"),
-                "core_capacity": lic.get("count") or lic.get("capacity") or lic.get("coreCapacity"),
-                "core_used": lic.get("consumedCount") or lic.get("usage") or lic.get("coreUsage"),
-            }
+    try:
+        res_resp = requests.get(
+            f"{base}/suite-api/api/resources",
+            headers=headers,
+            params={"pageSize": 1000},
+            verify=False,
+            timeout=REQUEST_TIMEOUT_SECONDS,
         )
+        res_resp.raise_for_status()
+        resources = (res_resp.json() or {}).get("resourceList", [])
+        license_resources = [
+            r
+            for r in resources
+            if "licens" in (r.get("resourceKey", {}).get("resourceKindKey") or "").lower()
+        ]
+
+        for res in license_resources:
+            resource_id = res.get("identifier")
+            resource_key = res.get("resourceKey", {})
+            stats_resp = requests.get(
+                f"{base}/suite-api/api/resources/{resource_id}/stats/latest",
+                headers=headers,
+                verify=False,
+                timeout=REQUEST_TIMEOUT_SECONDS,
+            )
+            if not stats_resp.ok:
+                continue
+
+            stat_values: dict[str, float] = {}
+            for entry in (stats_resp.json() or {}).get("values", []):
+                for stat in entry.get("stat-list", {}).get("stat", []):
+                    key = stat.get("statKey", {}).get("key", "")
+                    data = stat.get("data") or []
+                    if data:
+                        stat_values[key] = data[-1]
+
+            core_capacity = next(
+                (
+                    v
+                    for k, v in stat_values.items()
+                    if "core" in k.lower() and ("cap" in k.lower() or "total" in k.lower())
+                ),
+                None,
+            )
+            core_used = next(
+                (
+                    v
+                    for k, v in stat_values.items()
+                    if "core" in k.lower() and ("used" in k.lower() or "consum" in k.lower())
+                ),
+                None,
+            )
+            if core_capacity is None and core_used is None:
+                continue
+
+            rows.append(
+                {
+                    "license_key": None,
+                    "license_type": resource_key.get("resourceKindKey"),
+                    "license_status": (res.get("resourceStatusStates") or [{}])[0].get("resourceStatus"),
+                    "domain_name": resource_key.get("name"),
+                    "core_capacity": int(core_capacity) if core_capacity is not None else None,
+                    "core_used": int(core_used) if core_used is not None else None,
+                }
+            )
+    except requests.RequestException:
+        rows = []
+
     return detected_version, rows

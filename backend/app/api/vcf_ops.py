@@ -26,6 +26,7 @@ def _to_read(connection: VcfOpsConnection, db: Session) -> VcfOpsConnectionRead:
             "id": connection.id,
             "name": connection.name,
             "host": connection.host,
+            "auth_method": connection.auth_method,
             "username": connection.username,
             "detected_version": connection.detected_version,
             "status": connection.status,
@@ -40,7 +41,11 @@ def _to_read(connection: VcfOpsConnection, db: Session) -> VcfOpsConnectionRead:
 def _sync_connection(connection: VcfOpsConnection, db: Session) -> None:
     try:
         detected_version, rows = collect_core_license_usage(
-            connection.host, connection.username, connection.password
+            connection.host,
+            connection.auth_method,
+            username=connection.username,
+            password=connection.password,
+            api_token=connection.api_token,
         )
     except ValueError as exc:
         connection.status = "failed"
@@ -75,8 +80,10 @@ def create_connection(payload: VcfOpsConnectionCreate, db: Session = Depends(get
     connection = VcfOpsConnection(
         name=payload.name,
         host=payload.host,
+        auth_method=payload.auth_method,
         username=payload.username,
         password=payload.password,
+        api_token=payload.api_token,
         status="pending",
     )
     db.add(connection)

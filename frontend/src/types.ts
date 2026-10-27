@@ -101,11 +101,14 @@ export interface VCenterInventoryItem {
   project_id: number | null;
 }
 
+export type VcfOpsAuthMethod = "credentials" | "token";
+
 export interface VcfOpsConnection {
   id: number;
   name: string;
   host: string;
-  username: string;
+  auth_method: VcfOpsAuthMethod;
+  username: string | null;
   detected_version: string | null;
   status: "pending" | "connected" | "failed";
   last_error: string | null;

@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { createVcfOpsConnection } from "../api/client";
+import type { VcfOpsAuthMethod } from "../types";
 
 interface Props {
   onClose: () => void;
@@ -10,12 +11,17 @@ interface Props {
 function ConnectVcfOpsModal({ onClose, onConnected }: Props) {
   const [name, setName] = useState("");
   const [host, setHost] = useState("");
+  const [authMethod, setAuthMethod] = useState<VcfOpsAuthMethod>("credentials");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [apiToken, setApiToken] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = name.trim() && host.trim() && username.trim() && password.trim();
+  const canSubmit =
+    name.trim() &&
+    host.trim() &&
+    (authMethod === "credentials" ? username.trim() && password.trim() : apiToken.trim());
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -25,8 +31,10 @@ function ConnectVcfOpsModal({ onClose, onConnected }: Props) {
       await createVcfOpsConnection({
         name: name.trim(),
         host: host.trim(),
-        username: username.trim(),
-        password,
+        auth_method: authMethod,
+        ...(authMethod === "credentials"
+          ? { username: username.trim(), password }
+          : { api_token: apiToken.trim() }),
       });
       onConnected();
       onClose();
@@ -65,23 +73,48 @@ function ConnectVcfOpsModal({ onClose, onConnected }: Props) {
               onChange={(e) => setHost(e.target.value)}
             />
           </div>
-          <div className="form-field">
-            <label>사용자 이름</label>
-            <input
-              type="text"
-              placeholder="administrator@vsphere.local"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
+          <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+            <label>인증 방식</label>
+            <select
+              value={authMethod}
+              onChange={(e) => setAuthMethod(e.target.value as VcfOpsAuthMethod)}
+            >
+              <option value="credentials">아이디 / 비밀번호</option>
+              <option value="token">API 토큰</option>
+            </select>
           </div>
-          <div className="form-field">
-            <label>비밀번호</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+
+          {authMethod === "credentials" ? (
+            <>
+              <div className="form-field">
+                <label>사용자 이름</label>
+                <input
+                  type="text"
+                  placeholder="admin"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
+              <div className="form-field">
+                <label>비밀번호</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+              <label>API 토큰</label>
+              <input
+                type="password"
+                placeholder="발급받은 VCF Operations API 토큰"
+                value={apiToken}
+                onChange={(e) => setApiToken(e.target.value)}
+              />
+            </div>
+          )}
         </div>
 
         {error && <p className="error-text">{error}</p>}
