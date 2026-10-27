@@ -21,7 +21,7 @@ function App() {
             path="/projects"
             element={
               <div>
-                <h1 className="page-title">프로젝트</h1>
+                <h1 className="page-title">공급자 현황</h1>
                 <ProjectsListView />
               </div>
             }

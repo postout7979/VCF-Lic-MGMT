@@ -319,6 +319,17 @@ select:focus {
   width: 480px;
 }
 
+.modal-box.large {
+  width: 1100px;
+  height: 80vh;
+  max-width: 95vw;
+  max-height: 92vh;
+  min-width: 480px;
+  min-height: 320px;
+  resize: both;
+  overflow: auto;
+}
+
 .modal-box h2 {
   margin: 0 0 4px;
   color: var(--color-primary-dark);

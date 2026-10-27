@@ -32,7 +32,7 @@ function ProjectDetailView() {
   return (
     <div>
       <button className="btn btn-secondary" style={{ marginBottom: 16 }} onClick={() => navigate("/projects")}>
-        ← 프로젝트 목록
+        ← 공급자 현황 목록
       </button>
 
       <div className="card" style={{ marginBottom: 20 }}>

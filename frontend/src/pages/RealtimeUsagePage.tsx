@@ -111,7 +111,7 @@ function RealtimeUsagePage() {
                   <button
                     key={name}
                     className={`vc-name-item${selectedVCenter === name ? " active" : ""}`}
-                    onClick={() => setSelectedVCenter(name)}
+                    onClick={() => setSelectedVCenter((prev) => (prev === name ? null : name))}
                   >
                     {name}
                   </button>

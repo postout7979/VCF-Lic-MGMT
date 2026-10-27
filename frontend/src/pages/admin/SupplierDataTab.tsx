@@ -19,6 +19,7 @@ const COLUMNS: { field: string; label: string; sortable: boolean }[] = [
   { field: "parent_customer", label: "Parent Customer", sortable: true },
   { field: "customer_name", label: "Customer Name", sortable: true },
   { field: "product_name", label: "Product Name", sortable: true },
+  { field: "license_key", label: "License Key", sortable: true },
   { field: "license_type", label: "License Type", sortable: true },
   { field: "quantity_ent", label: "Quantity - ENT", sortable: true },
   { field: "erp_site_id", label: "ERP Site ID", sortable: true },
@@ -225,6 +226,7 @@ function SupplierDataTab() {
                   <td>{item.parent_customer}</td>
                   <td>{item.customer_name}</td>
                   <td>{item.product_name}</td>
+                  <td>{item.license_key}</td>
                   <td>
                     <LicenseTypeBadge licenseType={item.license_type} />
                   </td>

@@ -4,7 +4,7 @@ const NAV_ITEMS = [
   { to: "/admin", label: "관리자" },
   { to: "/license-overview", label: "라이센스 종합 현황" },
   { to: "/realtime-usage", label: "실시간 사용 현황" },
-  { to: "/projects", label: "프로젝트" },
+  { to: "/projects", label: "공급자 현황" },
 ];
 
 function Sidebar() {

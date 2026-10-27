@@ -21,7 +21,7 @@ function VCenterInventoryModal({ connection, onClose }: Props) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-box large" onClick={(e) => e.stopPropagation()}>
         <h2>{connection.name} 인벤토리</h2>
         <p className="text-muted">{connection.host} 수집 결과 ({items.length}건)</p>
 
