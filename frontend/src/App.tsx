@@ -1,41 +1,35 @@
-import { useEffect, useState } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
 
-import type { License } from "./types";
+import Sidebar from "./components/Sidebar";
+import AdminPage from "./pages/AdminPage";
+import LicenseOverviewPage from "./pages/LicenseOverviewPage";
+import ProjectDetailView from "./pages/projects/ProjectDetailView";
+import ProjectsListView from "./pages/projects/ProjectsListView";
+import RealtimeUsagePage from "./pages/RealtimeUsagePage";
 
 function App() {
-  const [licenses, setLicenses] = useState<License[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/v1/licenses")
-      .then((res) => res.json())
-      .then(setLicenses)
-      .catch(() => setError("Failed to load licenses"));
-  }, []);
-
   return (
-    <main>
-      <h1>VCF License Management</h1>
-      {error && <p>{error}</p>}
-      <table>
-        <thead>
-          <tr>
-            <th>Key</th>
-            <th>Product</th>
-            <th>Expires On</th>
-          </tr>
-        </thead>
-        <tbody>
-          {licenses.map((license) => (
-            <tr key={license.id}>
-              <td>{license.key}</td>
-              <td>{license.product}</td>
-              <td>{license.expires_on ?? "—"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </main>
+    <div className="app-shell">
+      <Sidebar />
+      <main className="main-panel">
+        <Routes>
+          <Route path="/" element={<Navigate to="/admin" replace />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/license-overview" element={<LicenseOverviewPage />} />
+          <Route path="/realtime-usage" element={<RealtimeUsagePage />} />
+          <Route
+            path="/projects"
+            element={
+              <div>
+                <h1 className="page-title">프로젝트</h1>
+                <ProjectsListView />
+              </div>
+            }
+          />
+          <Route path="/projects/:id" element={<ProjectDetailView />} />
+        </Routes>
+      </main>
+    </div>
   );
 }
 
