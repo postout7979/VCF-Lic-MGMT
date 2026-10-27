@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
@@ -7,6 +7,7 @@ class LicenseItemRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    upload_name: str
     serial_number: str
     parent_customer: str | None
     customer_name: str | None
@@ -41,3 +42,13 @@ class LicenseItemPage(BaseModel):
     page: int
     page_size: int
     total_pages: int
+
+
+class UploadBatchRead(BaseModel):
+    upload_name: str
+    uploaded_at: datetime
+    item_count: int
+
+
+class DeleteUploadsRequest(BaseModel):
+    upload_names: list[str]

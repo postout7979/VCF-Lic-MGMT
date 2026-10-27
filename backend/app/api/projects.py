@@ -37,11 +37,22 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         .scalar()
         or 0
     )
-    vcenter_license_key_count = (
-        db.query(func.count(func.distinct(VCenterInventoryItem.license_key)))
+    # Perpetual vCenter licensing is per-socket; term (subscription) licensing
+    # is per-core actually consumed.
+    vcenter_perpetual_quantity = (
+        db.query(func.coalesce(func.sum(VCenterInventoryItem.cpu_sockets), 0))
         .filter(
             VCenterInventoryItem.project_id == project.id,
-            VCenterInventoryItem.license_key.isnot(None),
+            VCenterInventoryItem.license_category == "PERPETUAL",
+        )
+        .scalar()
+        or 0
+    )
+    vcenter_term_quantity = (
+        db.query(func.coalesce(func.sum(VCenterInventoryItem.total_cores), 0))
+        .filter(
+            VCenterInventoryItem.project_id == project.id,
+            VCenterInventoryItem.license_category == "SUBSCRIPTION",
         )
         .scalar()
         or 0
@@ -54,7 +65,8 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         perpetual_quantity=_quantity_sum(db, project.id, "PERPETUAL"),
         subscription_quantity=_quantity_sum(db, project.id, "SUBSCRIPTION"),
         vcenter_count=vcenter_count,
-        vcenter_license_key_count=vcenter_license_key_count,
+        vcenter_perpetual_quantity=int(vcenter_perpetual_quantity),
+        vcenter_term_quantity=int(vcenter_term_quantity),
         item_count=item_count,
     )
 

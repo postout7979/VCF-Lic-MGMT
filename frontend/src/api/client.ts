@@ -3,6 +3,7 @@ import type {
   LicenseItemPage,
   ProjectDetail,
   ProjectSummary,
+  UploadBatch,
   UploadResult,
   VCenterConnection,
   VCenterInventoryItem,
@@ -28,9 +29,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export function uploadSupplierData(file: File): Promise<UploadResult> {
+export function uploadSupplierData(file: File, uploadName: string): Promise<UploadResult> {
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("upload_name", uploadName);
   return request<UploadResult>("/supplier-data/upload", {
     method: "POST",
     body: formData,
@@ -56,6 +58,8 @@ export function searchSupplierData(params: {
   pageSize: number;
   searchField?: string;
   searchQuery?: string;
+  sortField?: string;
+  sortOrder?: "asc" | "desc";
 }): Promise<LicenseItemPage> {
   const query = new URLSearchParams({
     page: String(params.page),
@@ -65,11 +69,26 @@ export function searchSupplierData(params: {
     query.set("search_field", params.searchField);
     query.set("search_query", params.searchQuery);
   }
+  if (params.sortField) {
+    query.set("sort_field", params.sortField);
+    query.set("sort_order", params.sortOrder ?? "asc");
+  }
   return request<LicenseItemPage>(`/supplier-data/search?${query.toString()}`);
 }
 
 export function deleteAllSupplierData(): Promise<void> {
   return request<void>("/supplier-data", { method: "DELETE" });
+}
+
+export function fetchUploadBatches(): Promise<UploadBatch[]> {
+  return request<UploadBatch[]>("/supplier-data/uploads");
+}
+
+export function deleteUploadBatches(uploadNames: string[]): Promise<void> {
+  return request<void>("/supplier-data/uploads", {
+    method: "DELETE",
+    body: JSON.stringify({ upload_names: uploadNames }),
+  });
 }
 
 export function fetchProjects(): Promise<ProjectSummary[]> {

@@ -70,7 +70,7 @@ def _clean_str(value) -> str | None:
     return text or None
 
 
-def import_excel(db: Session, file_obj: BinaryIO) -> UploadResult:
+def import_excel(db: Session, file_obj: BinaryIO, upload_name: str) -> UploadResult:
     workbook = load_workbook(file_obj, data_only=True, read_only=True)
     sheet = workbook.active
 
@@ -108,6 +108,7 @@ def import_excel(db: Session, file_obj: BinaryIO) -> UploadResult:
             continue
 
         values = {
+            "upload_name": upload_name,
             "serial_number": serial_number,
             "parent_customer": _clean_str(cell(row, "Parent Customer")),
             "customer_name": _clean_str(cell(row, "Customer Name")),

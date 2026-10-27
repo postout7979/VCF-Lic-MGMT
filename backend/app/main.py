@@ -27,6 +27,7 @@ SCHEMA_PATCHES = [
     FROM vcenter_connections vc
     WHERE vi.connection_id = vc.id
     """,
+    "ALTER TABLE license_items ADD COLUMN IF NOT EXISTS upload_name VARCHAR NOT NULL DEFAULT '기존 업로드'",
 ]
 
 app = FastAPI(title="VCF License Management")

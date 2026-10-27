@@ -70,14 +70,23 @@ function ProjectAdminTab() {
         <table>
           <thead>
             <tr>
-              <th>프로젝트명</th>
-              <th>생성일</th>
-              <th>할당된 항목 수</th>
+              <th rowSpan={2}>프로젝트명</th>
+              <th rowSpan={2}>생성일</th>
+              <th colSpan={3} style={{ textAlign: "center" }}>
+                공급자 데이터
+              </th>
+              <th colSpan={3} style={{ textAlign: "center" }}>
+                vCenter 데이터
+              </th>
+              <th rowSpan={2}></th>
+            </tr>
+            <tr>
+              <th>할당 항목 수</th>
               <th>Perpetual 합계</th>
               <th>Subscription 합계</th>
               <th>vCenter 수</th>
-              <th>할당된 라이센스 키 수</th>
-              <th></th>
+              <th>Perpetual 수량</th>
+              <th>Term 수량</th>
             </tr>
           </thead>
           <tbody>
@@ -89,7 +98,8 @@ function ProjectAdminTab() {
                 <td>{project.perpetual_quantity.toLocaleString()}</td>
                 <td>{project.subscription_quantity.toLocaleString()}</td>
                 <td>{project.vcenter_count}</td>
-                <td>{project.vcenter_license_key_count}</td>
+                <td>{project.vcenter_perpetual_quantity.toLocaleString()}</td>
+                <td>{project.vcenter_term_quantity.toLocaleString()}</td>
                 <td style={{ display: "flex", gap: 6 }}>
                   <button
                     className="btn btn-secondary"

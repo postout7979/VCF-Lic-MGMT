@@ -12,6 +12,7 @@ class LicenseItem(Base):
     __tablename__ = "license_items"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    upload_name: Mapped[str] = mapped_column(String, index=True, nullable=False)
     serial_number: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     parent_customer: Mapped[str | None] = mapped_column(String, nullable=True)
     customer_name: Mapped[str | None] = mapped_column(String, nullable=True)

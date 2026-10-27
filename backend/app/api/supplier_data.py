@@ -1,17 +1,25 @@
 import io
 import math
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.license_item import LicenseItem
-from app.schemas.license_item import LicenseItemPage, LicenseItemRead, UploadResult
+from app.schemas.license_item import (
+    DeleteUploadsRequest,
+    LicenseItemPage,
+    LicenseItemRead,
+    UploadBatchRead,
+    UploadResult,
+)
 from app.services.excel_import import import_excel
 
 router = APIRouter(prefix="/supplier-data", tags=["supplier-data"])
 
 SEARCHABLE_FIELDS = {
+    "upload_name": LicenseItem.upload_name,
     "serial_number": LicenseItem.serial_number,
     "parent_customer": LicenseItem.parent_customer,
     "customer_name": LicenseItem.customer_name,
@@ -25,15 +33,26 @@ SEARCHABLE_FIELDS = {
     "division": LicenseItem.division,
 }
 
+SORTABLE_FIELDS = {
+    **SEARCHABLE_FIELDS,
+    "quantity_ent": LicenseItem.quantity_ent,
+    "start_date": LicenseItem.start_date,
+    "end_date": LicenseItem.end_date,
+}
+
 
 @router.post("/upload", response_model=UploadResult)
-def upload_supplier_data(file: UploadFile, db: Session = Depends(get_db)):
+def upload_supplier_data(
+    file: UploadFile, upload_name: str = Form(...), db: Session = Depends(get_db)
+):
     if not file.filename.lower().endswith((".xlsx", ".xlsm")):
         raise HTTPException(status_code=400, detail="엑셀 파일(.xlsx)만 업로드할 수 있습니다.")
+    if not upload_name.strip():
+        raise HTTPException(status_code=400, detail="업로드 이름을 입력해주세요.")
 
     content = file.file.read()
     try:
-        return import_excel(db, io.BytesIO(content))
+        return import_excel(db, io.BytesIO(content), upload_name.strip())
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -41,6 +60,34 @@ def upload_supplier_data(file: UploadFile, db: Session = Depends(get_db)):
 @router.delete("", status_code=204)
 def delete_all_supplier_data(db: Session = Depends(get_db)):
     db.query(LicenseItem).delete()
+    db.commit()
+
+
+@router.get("/uploads", response_model=list[UploadBatchRead])
+def list_uploads(db: Session = Depends(get_db)):
+    rows = (
+        db.query(
+            LicenseItem.upload_name,
+            func.max(LicenseItem.updated_at).label("uploaded_at"),
+            func.count(LicenseItem.id).label("item_count"),
+        )
+        .group_by(LicenseItem.upload_name)
+        .order_by(func.max(LicenseItem.updated_at).desc())
+        .all()
+    )
+    return [
+        UploadBatchRead(upload_name=row.upload_name, uploaded_at=row.uploaded_at, item_count=row.item_count)
+        for row in rows
+    ]
+
+
+@router.delete("/uploads", status_code=204)
+def delete_uploads(payload: DeleteUploadsRequest, db: Session = Depends(get_db)):
+    if not payload.upload_names:
+        return
+    db.query(LicenseItem).filter(LicenseItem.upload_name.in_(payload.upload_names)).delete(
+        synchronize_session=False
+    )
     db.commit()
 
 
@@ -66,6 +113,8 @@ def search_supplier_data(
     page_size: int = Query(20, ge=1, le=200),
     search_field: str | None = None,
     search_query: str | None = None,
+    sort_field: str | None = None,
+    sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
 ):
     query = db.query(LicenseItem)
@@ -77,12 +126,14 @@ def search_supplier_data(
         query = query.filter(column.ilike(f"%{search_query}%"))
 
     total = query.count()
-    items = (
-        query.order_by(LicenseItem.id)
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-        .all()
-    )
+
+    order_column = SORTABLE_FIELDS.get(sort_field) if sort_field else None
+    if order_column is not None:
+        order_by = order_column.desc() if sort_order == "desc" else order_column.asc()
+    else:
+        order_by = LicenseItem.id.asc()
+
+    items = query.order_by(order_by).offset((page - 1) * page_size).limit(page_size).all()
     total_pages = max(1, math.ceil(total / page_size))
 
     return LicenseItemPage(

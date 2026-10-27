@@ -1,5 +1,6 @@
 export interface LicenseItem {
   id: number;
+  upload_name: string;
   serial_number: string;
   parent_customer: string | null;
   customer_name: string | null;
@@ -26,7 +27,8 @@ export interface ProjectSummary {
   subscription_quantity: number;
   item_count: number;
   vcenter_count: number;
-  vcenter_license_key_count: number;
+  vcenter_perpetual_quantity: number;
+  vcenter_term_quantity: number;
 }
 
 export interface ProjectDetail extends ProjectSummary {
@@ -49,6 +51,7 @@ export interface LicenseItemPage {
 }
 
 export const SEARCHABLE_FIELDS: { value: string; label: string }[] = [
+  { value: "upload_name", label: "업로드 이름" },
   { value: "serial_number", label: "Serial Number" },
   { value: "parent_customer", label: "Parent Customer" },
   { value: "customer_name", label: "Customer Name" },
@@ -76,6 +79,12 @@ export interface VCenterConnection {
   last_synced_at: string | null;
   created_at: string;
   host_count: number;
+}
+
+export interface UploadBatch {
+  upload_name: string;
+  uploaded_at: string;
+  item_count: number;
 }
 
 export interface VCenterInventoryItem {

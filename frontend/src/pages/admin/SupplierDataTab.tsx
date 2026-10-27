@@ -1,12 +1,32 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 
-import { deleteAllSupplierData, searchSupplierData, uploadSupplierData } from "../../api/client";
-import Pagination from "../../components/Pagination";
+import {
+  deleteAllSupplierData,
+  searchSupplierData,
+  uploadSupplierData,
+} from "../../api/client";
+import DeleteUploadsModal from "../../components/DeleteUploadsModal";
 import LicenseTypeBadge from "../../components/LicenseTypeBadge";
+import Pagination from "../../components/Pagination";
 import { SEARCHABLE_FIELDS } from "../../types";
 import type { LicenseItem, UploadResult } from "../../types";
 
 const PAGE_SIZE = 20;
+
+const COLUMNS: { field: string; label: string; sortable: boolean }[] = [
+  { field: "upload_name", label: "업로드 이름", sortable: true },
+  { field: "serial_number", label: "Serial Number", sortable: true },
+  { field: "parent_customer", label: "Parent Customer", sortable: true },
+  { field: "customer_name", label: "Customer Name", sortable: true },
+  { field: "product_name", label: "Product Name", sortable: true },
+  { field: "license_type", label: "License Type", sortable: true },
+  { field: "quantity_ent", label: "Quantity - ENT", sortable: true },
+  { field: "erp_site_id", label: "ERP Site ID", sortable: true },
+  { field: "contract_status", label: "Contract Status", sortable: true },
+  { field: "start_date", label: "Start Date", sortable: true },
+  { field: "end_date", label: "End Date", sortable: true },
+  { field: "project_id", label: "프로젝트 할당", sortable: false },
+];
 
 function isExpired(endDate: string | null): boolean {
   if (!endDate) return false;
@@ -21,8 +41,12 @@ function SupplierDataTab() {
   const [searchField, setSearchField] = useState(SEARCHABLE_FIELDS[0].value);
   const [searchInput, setSearchInput] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [uploadName, setUploadName] = useState("");
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteUploads, setShowDeleteUploads] = useState(false);
   const [result, setResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +56,8 @@ function SupplierDataTab() {
       pageSize: PAGE_SIZE,
       searchField,
       searchQuery: query,
+      sortField: sortField ?? undefined,
+      sortOrder,
     })
       .then((data) => {
         setItems(data.items);
@@ -45,7 +71,7 @@ function SupplierDataTab() {
   useEffect(() => {
     loadItems(page, activeSearch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, activeSearch, searchField]);
+  }, [page, activeSearch, searchField, sortField, sortOrder]);
 
   function handleSearch() {
     setPage(1);
@@ -58,14 +84,28 @@ function SupplierDataTab() {
     setPage(1);
   }
 
+  function handleSort(field: string) {
+    if (sortField === field) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  }
+
   async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!uploadName.trim()) {
+      setError("업로드 이름을 먼저 입력해주세요.");
+      e.target.value = "";
+      return;
+    }
     setUploading(true);
     setError(null);
     setResult(null);
     try {
-      const res = await uploadSupplierData(file);
+      const res = await uploadSupplierData(file, uploadName.trim());
       setResult(res);
       loadItems(1, activeSearch);
       setPage(1);
@@ -94,17 +134,34 @@ function SupplierDataTab() {
     }
   }
 
+  function sortIndicator(field: string) {
+    if (sortField !== field) return "";
+    return sortOrder === "asc" ? " ▲" : " ▼";
+  }
+
   return (
     <div>
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="form-row" style={{ justifyContent: "space-between" }}>
           <div className="form-row" style={{ marginBottom: 0 }}>
+            <input
+              type="text"
+              placeholder="업로드 이름"
+              value={uploadName}
+              onChange={(e) => setUploadName(e.target.value)}
+              style={{ width: 200 }}
+            />
             <input type="file" accept=".xlsx,.xlsm" onChange={handleFileChange} disabled={uploading} />
             {uploading && <span className="text-muted">업로드 중...</span>}
           </div>
-          <button className="btn btn-danger" onClick={handleDeleteAll} disabled={deleting}>
-            {deleting ? "삭제 중..." : "업로드 데이터 전체 삭제"}
-          </button>
+          <div className="form-row" style={{ marginBottom: 0 }}>
+            <button className="btn btn-secondary" onClick={() => setShowDeleteUploads(true)}>
+              개별 삭제
+            </button>
+            <button className="btn btn-danger" onClick={handleDeleteAll} disabled={deleting}>
+              {deleting ? "삭제 중..." : "전체 삭제"}
+            </button>
+          </div>
         </div>
         {error && <p className="error-text">{error}</p>}
         {result && (
@@ -148,22 +205,22 @@ function SupplierDataTab() {
           <table>
             <thead>
               <tr>
-                <th>Serial Number</th>
-                <th>Parent Customer</th>
-                <th>Customer Name</th>
-                <th>Product Name</th>
-                <th>License Type</th>
-                <th>Quantity - ENT</th>
-                <th>ERP Site ID</th>
-                <th>Contract Status</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th>프로젝트 할당</th>
+                {COLUMNS.map((col) => (
+                  <th
+                    key={col.field}
+                    onClick={col.sortable ? () => handleSort(col.field) : undefined}
+                    style={col.sortable ? { cursor: "pointer", userSelect: "none" } : undefined}
+                  >
+                    {col.label}
+                    {col.sortable && sortIndicator(col.field)}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {items.map((item) => (
                 <tr key={item.id}>
+                  <td>{item.upload_name}</td>
                   <td>{item.serial_number}</td>
                   <td>{item.parent_customer}</td>
                   <td>{item.customer_name}</td>
@@ -188,6 +245,13 @@ function SupplierDataTab() {
 
         <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
+
+      {showDeleteUploads && (
+        <DeleteUploadsModal
+          onClose={() => setShowDeleteUploads(false)}
+          onDeleted={() => loadItems(1, activeSearch)}
+        />
+      )}
     </div>
   );
 }
