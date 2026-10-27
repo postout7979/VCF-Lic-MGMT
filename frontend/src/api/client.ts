@@ -1,5 +1,6 @@
 import type {
   LicenseItem,
+  LicenseItemPage,
   ProjectDetail,
   ProjectSummary,
   UploadResult,
@@ -36,9 +37,39 @@ export function uploadSupplierData(file: File): Promise<UploadResult> {
   });
 }
 
-export function fetchSupplierData(unassignedOnly = false): Promise<LicenseItem[]> {
-  const query = unassignedOnly ? "?unassigned_only=true" : "";
+export function fetchSupplierData(options?: {
+  unassignedOnly?: boolean;
+  assignableForProject?: number;
+}): Promise<LicenseItem[]> {
+  const params = new URLSearchParams();
+  if (options?.assignableForProject !== undefined) {
+    params.set("assignable_for_project", String(options.assignableForProject));
+  } else if (options?.unassignedOnly) {
+    params.set("unassigned_only", "true");
+  }
+  const query = params.toString() ? `?${params.toString()}` : "";
   return request<LicenseItem[]>(`/supplier-data${query}`);
+}
+
+export function searchSupplierData(params: {
+  page: number;
+  pageSize: number;
+  searchField?: string;
+  searchQuery?: string;
+}): Promise<LicenseItemPage> {
+  const query = new URLSearchParams({
+    page: String(params.page),
+    page_size: String(params.pageSize),
+  });
+  if (params.searchField && params.searchQuery) {
+    query.set("search_field", params.searchField);
+    query.set("search_query", params.searchQuery);
+  }
+  return request<LicenseItemPage>(`/supplier-data/search?${query.toString()}`);
+}
+
+export function deleteAllSupplierData(): Promise<void> {
+  return request<void>("/supplier-data", { method: "DELETE" });
 }
 
 export function fetchProjects(): Promise<ProjectSummary[]> {
@@ -54,6 +85,10 @@ export function createProject(name: string, description?: string): Promise<Proje
 
 export function fetchProjectDetail(projectId: number): Promise<ProjectDetail> {
   return request<ProjectDetail>(`/projects/${projectId}`);
+}
+
+export function deleteProject(projectId: number): Promise<void> {
+  return request<void>(`/projects/${projectId}`, { method: "DELETE" });
 }
 
 export function assignItemsToProject(
@@ -99,4 +134,28 @@ export function fetchVCenterInventory(connectionId: number): Promise<VCenterInve
   return request<VCenterInventoryItem[]>(
     `/legacy-infra/vcenter-connections/${connectionId}/inventory`,
   );
+}
+
+export function fetchVCenterItems(options?: {
+  assignableForProject?: number;
+  assignedToProject?: number;
+}): Promise<VCenterInventoryItem[]> {
+  const params = new URLSearchParams();
+  if (options?.assignedToProject !== undefined) {
+    params.set("assigned_to_project", String(options.assignedToProject));
+  } else if (options?.assignableForProject !== undefined) {
+    params.set("assignable_for_project", String(options.assignableForProject));
+  }
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return request<VCenterInventoryItem[]>(`/legacy-infra/vcenter-items${query}`);
+}
+
+export function assignVCenterItemsToProject(
+  projectId: number,
+  itemIds: number[],
+): Promise<number[]> {
+  return request<number[]>(`/projects/${projectId}/assign-vcenter`, {
+    method: "POST",
+    body: JSON.stringify({ item_ids: itemIds }),
+  });
 }

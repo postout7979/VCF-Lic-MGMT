@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 
-import { createProject, fetchProjects } from "../../api/client";
-import AssignModal from "../../components/AssignModal";
+import { createProject, deleteProject, fetchProjects } from "../../api/client";
+import SupplierAssignModal from "../../components/SupplierAssignModal";
+import VCenterAssignModal from "../../components/VCenterAssignModal";
 import type { ProjectSummary } from "../../types";
 
 function ProjectAdminTab() {
@@ -9,7 +10,8 @@ function ProjectAdminTab() {
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [assignTarget, setAssignTarget] = useState<ProjectSummary | null>(null);
+  const [supplierAssignTarget, setSupplierAssignTarget] = useState<ProjectSummary | null>(null);
+  const [vcenterAssignTarget, setVCenterAssignTarget] = useState<ProjectSummary | null>(null);
 
   function loadProjects() {
     fetchProjects().then(setProjects).catch(() => undefined);
@@ -31,6 +33,18 @@ function ProjectAdminTab() {
       setError(err instanceof Error ? err.message : "프로젝트 생성에 실패했습니다.");
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleDelete(project: ProjectSummary) {
+    if (!window.confirm(`${project.name} 프로젝트를 삭제할까요? 할당된 항목은 할당 해제됩니다.`)) {
+      return;
+    }
+    try {
+      await deleteProject(project.id);
+      loadProjects();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "프로젝트 삭제에 실패했습니다.");
     }
   }
 
@@ -72,9 +86,21 @@ function ProjectAdminTab() {
                 <td>{project.item_count}</td>
                 <td>{project.perpetual_quantity.toLocaleString()}</td>
                 <td>{project.subscription_quantity.toLocaleString()}</td>
-                <td>
-                  <button className="btn btn-secondary" onClick={() => setAssignTarget(project)}>
-                    Assign
+                <td style={{ display: "flex", gap: 6 }}>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setSupplierAssignTarget(project)}
+                  >
+                    공급자 할당
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setVCenterAssignTarget(project)}
+                  >
+                    vCenter 할당
+                  </button>
+                  <button className="btn btn-danger" onClick={() => handleDelete(project)}>
+                    삭제
                   </button>
                 </td>
               </tr>
@@ -83,10 +109,17 @@ function ProjectAdminTab() {
         </table>
       </div>
 
-      {assignTarget && (
-        <AssignModal
-          project={assignTarget}
-          onClose={() => setAssignTarget(null)}
+      {supplierAssignTarget && (
+        <SupplierAssignModal
+          project={supplierAssignTarget}
+          onClose={() => setSupplierAssignTarget(null)}
+          onAssigned={loadProjects}
+        />
+      )}
+      {vcenterAssignTarget && (
+        <VCenterAssignModal
+          project={vcenterAssignTarget}
+          onClose={() => setVCenterAssignTarget(null)}
           onAssigned={loadProjects}
         />
       )}

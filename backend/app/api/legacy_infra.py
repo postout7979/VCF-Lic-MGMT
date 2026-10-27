@@ -49,12 +49,29 @@ def _sync_connection(connection: VCenterConnection, db: Session) -> None:
         db.commit()
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    db.query(VCenterInventoryItem).filter(
-        VCenterInventoryItem.connection_id == connection.id
-    ).delete()
+    # Upsert by host_name so an existing project assignment survives a re-sync
+    # instead of being wiped out by a delete-then-recreate.
+    existing_by_host = {
+        item.host_name: item
+        for item in db.query(VCenterInventoryItem).filter(
+            VCenterInventoryItem.connection_id == connection.id
+        )
+    }
+    seen_hosts: set[str] = set()
 
     for row in rows:
-        db.add(VCenterInventoryItem(connection_id=connection.id, **row))
+        host_name = row.get("host_name")
+        seen_hosts.add(host_name)
+        existing = existing_by_host.get(host_name)
+        if existing is not None:
+            for key, value in row.items():
+                setattr(existing, key, value)
+        else:
+            db.add(VCenterInventoryItem(connection_id=connection.id, **row))
+
+    for host_name, item in existing_by_host.items():
+        if host_name not in seen_hosts:
+            db.delete(item)
 
     connection.status = "connected"
     connection.detected_version = detected_version
@@ -122,3 +139,22 @@ def delete_connection(connection_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="연결을 찾을 수 없습니다.")
     db.delete(connection)
     db.commit()
+
+
+@router.get("/vcenter-items", response_model=list[VCenterInventoryItemRead])
+def list_vcenter_items(
+    assignable_for_project: int | None = None,
+    assigned_to_project: int | None = None,
+    db: Session = Depends(get_db),
+):
+    query = db.query(VCenterInventoryItem)
+    if assigned_to_project is not None:
+        query = query.filter(VCenterInventoryItem.project_id == assigned_to_project)
+    elif assignable_for_project is not None:
+        query = query.filter(
+            (VCenterInventoryItem.project_id.is_(None))
+            | (VCenterInventoryItem.project_id == assignable_for_project)
+        )
+    return query.order_by(
+        VCenterInventoryItem.vcenter_name, VCenterInventoryItem.cluster_name, VCenterInventoryItem.host_name
+    ).all()

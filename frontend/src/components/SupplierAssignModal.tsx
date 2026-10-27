@@ -10,7 +10,7 @@ interface Props {
   onAssigned: () => void;
 }
 
-function AssignModal({ project, onClose, onAssigned }: Props) {
+function SupplierAssignModal({ project, onClose, onAssigned }: Props) {
   const [items, setItems] = useState<LicenseItem[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -18,11 +18,14 @@ function AssignModal({ project, onClose, onAssigned }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchSupplierData(true)
-      .then(setItems)
+    fetchSupplierData({ assignableForProject: project.id })
+      .then((data) => {
+        setItems(data);
+        setSelected(new Set(data.filter((item) => item.project_id === project.id).map((item) => item.id)));
+      })
       .catch(() => setError("할당 가능한 항목을 불러오지 못했습니다."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [project.id]);
 
   const allSelected = useMemo(
     () => items.length > 0 && selected.size === items.length,
@@ -46,7 +49,6 @@ function AssignModal({ project, onClose, onAssigned }: Props) {
   }
 
   async function handleAssign() {
-    if (selected.size === 0) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -63,9 +65,10 @@ function AssignModal({ project, onClose, onAssigned }: Props) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-        <h2>{project.name}</h2>
+        <h2>{project.name} — 공급자 할당</h2>
         <p className="text-muted">
-          아직 프로젝트에 할당되지 않은 항목입니다. 체크박스로 선택한 뒤 Assign을 눌러주세요.
+          체크박스로 항목을 선택/해제한 뒤 저장을 눌러주세요. 이미 이 프로젝트에 할당된 항목은
+          체크된 상태로 표시됩니다.
         </p>
         {error && <p className="error-text">{error}</p>}
         <div className="modal-scroll">
@@ -116,8 +119,8 @@ function AssignModal({ project, onClose, onAssigned }: Props) {
           <button className="btn btn-secondary" onClick={onClose} disabled={submitting}>
             닫기
           </button>
-          <button className="btn" onClick={handleAssign} disabled={submitting || selected.size === 0}>
-            Assign ({selected.size})
+          <button className="btn" onClick={handleAssign} disabled={submitting}>
+            저장 ({selected.size})
           </button>
         </div>
       </div>
@@ -125,4 +128,4 @@ function AssignModal({ project, onClose, onAssigned }: Props) {
   );
 }
 
-export default AssignModal;
+export default SupplierAssignModal;

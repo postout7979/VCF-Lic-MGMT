@@ -33,3 +33,11 @@ class UploadResult(BaseModel):
     updated: int
     skipped: int
     errors: list[str] = []
+
+
+class LicenseItemPage(BaseModel):
+    items: list[LicenseItemRead]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int

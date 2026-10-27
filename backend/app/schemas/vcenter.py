@@ -24,6 +24,7 @@ class VCenterInventoryItemRead(BaseModel):
     total_cores: int | None
     license_key: str | None
     collected_at: datetime
+    project_id: int | None = None
 
 
 class VCenterConnectionRead(BaseModel):

@@ -48,4 +48,9 @@ class VCenterInventoryItem(Base):
     license_key: Mapped[str | None] = mapped_column(String, nullable=True)
     collected_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+    project_id: Mapped[int | None] = mapped_column(
+        ForeignKey("projects.id"), nullable=True, index=True
+    )
+
     connection = relationship("VCenterConnection", back_populates="inventory_items")
+    project = relationship("Project", back_populates="vcenter_items")

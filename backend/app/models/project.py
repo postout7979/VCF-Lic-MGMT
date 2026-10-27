@@ -15,3 +15,4 @@ class Project(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     license_items = relationship("LicenseItem", back_populates="project")
+    vcenter_items = relationship("VCenterInventoryItem", back_populates="project")

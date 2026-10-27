@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.license_item import LicenseItem
 from app.models.project import Project
+from app.models.vcenter import VCenterInventoryItem
 from app.schemas.license_item import AssignItemsRequest
 from app.schemas.project import ProjectCreate, ProjectDetail, ProjectSummary
 
@@ -41,6 +42,41 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
     )
 
 
+def _reconcile_assignment(db: Session, model, project_id: int, desired_ids: set[int]) -> None:
+    """Set `model.project_id` so the final assigned set for this project equals
+    `desired_ids`, drawn from items that are unassigned or already assigned to
+    this project. Items newly claimed that already belong to another project
+    raise a 409; anything previously assigned to this project but missing from
+    `desired_ids` is unassigned (supports un-checking in the picker UI)."""
+
+    requested_items = db.query(model).filter(model.id.in_(desired_ids)).all() if desired_ids else []
+    found_ids = {item.id for item in requested_items}
+    missing_ids = desired_ids - found_ids
+    if missing_ids:
+        raise HTTPException(status_code=404, detail=f"존재하지 않는 항목: {sorted(missing_ids)}")
+
+    conflicts = [
+        item.id for item in requested_items if item.project_id is not None and item.project_id != project_id
+    ]
+    if conflicts:
+        raise HTTPException(
+            status_code=409,
+            detail=f"이미 다른 프로젝트에 할당된 항목입니다: {sorted(conflicts)}",
+        )
+
+    current_items = db.query(model).filter(model.project_id == project_id).all()
+    current_ids = {item.id for item in current_items}
+
+    for item in current_items:
+        if item.id not in desired_ids:
+            item.project_id = None
+    for item in requested_items:
+        if item.id not in current_ids:
+            item.project_id = project_id
+
+    db.commit()
+
+
 @router.get("", response_model=list[ProjectSummary])
 def list_projects(db: Session = Depends(get_db)):
     projects = db.query(Project).order_by(Project.created_at.desc()).all()
@@ -56,6 +92,24 @@ def create_project(payload: ProjectCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(project)
     return _to_summary(db, project)
+
+
+@router.delete("/{project_id}", status_code=204)
+def delete_project(project_id: int, db: Session = Depends(get_db)):
+    project = db.get(Project, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+
+    # Unassign rather than cascade-delete: the underlying supplier/vCenter
+    # data is independent of the project and must survive its deletion.
+    db.query(LicenseItem).filter(LicenseItem.project_id == project_id).update(
+        {"project_id": None}
+    )
+    db.query(VCenterInventoryItem).filter(VCenterInventoryItem.project_id == project_id).update(
+        {"project_id": None}
+    )
+    db.delete(project)
+    db.commit()
 
 
 @router.get("/{project_id}", response_model=ProjectDetail)
@@ -79,21 +133,23 @@ def assign_items(project_id: int, payload: AssignItemsRequest, db: Session = Dep
     if project is None:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
 
-    items = db.query(LicenseItem).filter(LicenseItem.id.in_(payload.item_ids)).all()
-    found_ids = {item.id for item in items}
-    missing_ids = set(payload.item_ids) - found_ids
-    if missing_ids:
-        raise HTTPException(status_code=404, detail=f"존재하지 않는 항목: {sorted(missing_ids)}")
-
-    already_assigned = [item.id for item in items if item.project_id is not None]
-    if already_assigned:
-        raise HTTPException(
-            status_code=409,
-            detail=f"이미 다른 프로젝트에 할당된 항목입니다: {sorted(already_assigned)}",
-        )
-
-    for item in items:
-        item.project_id = project_id
-    db.commit()
-
+    _reconcile_assignment(db, LicenseItem, project_id, set(payload.item_ids))
     return get_project(project_id, db)
+
+
+@router.post("/{project_id}/assign-vcenter", response_model=list[int])
+def assign_vcenter_items(
+    project_id: int, payload: AssignItemsRequest, db: Session = Depends(get_db)
+):
+    project = db.get(Project, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+
+    _reconcile_assignment(db, VCenterInventoryItem, project_id, set(payload.item_ids))
+
+    assigned = (
+        db.query(VCenterInventoryItem.id)
+        .filter(VCenterInventoryItem.project_id == project_id)
+        .all()
+    )
+    return [row[0] for row in assigned]

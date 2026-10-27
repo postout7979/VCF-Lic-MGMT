@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.api.legacy_infra import router as legacy_infra_router
 from app.api.projects import router as projects_router
@@ -12,6 +13,12 @@ from app.models import (  # noqa: F401  (register models with Base)
     VCenterConnection,
     VCenterInventoryItem,
 )
+
+# Additive, idempotent patches for columns added after a table already
+# existed in a running database. Remove once Alembic migrations are in place.
+SCHEMA_PATCHES = [
+    "ALTER TABLE vcenter_inventory_items ADD COLUMN IF NOT EXISTS project_id INTEGER REFERENCES projects(id)",
+]
 
 app = FastAPI(title="VCF License Management")
 
@@ -30,6 +37,9 @@ app.include_router(legacy_infra_router, prefix=settings.api_v1_prefix)
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
+    with engine.begin() as conn:
+        for statement in SCHEMA_PATCHES:
+            conn.execute(text(statement))
 
 
 @app.get("/health")

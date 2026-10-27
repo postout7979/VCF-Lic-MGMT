@@ -38,6 +38,28 @@ export interface UploadResult {
   errors: string[];
 }
 
+export interface LicenseItemPage {
+  items: LicenseItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export const SEARCHABLE_FIELDS: { value: string; label: string }[] = [
+  { value: "serial_number", label: "Serial Number" },
+  { value: "parent_customer", label: "Parent Customer" },
+  { value: "customer_name", label: "Customer Name" },
+  { value: "license_key", label: "License Key" },
+  { value: "license_type", label: "License Type" },
+  { value: "product_name", label: "Product Name" },
+  { value: "contract_status", label: "Contract Status" },
+  { value: "erp_site_id", label: "ERP Site ID" },
+  { value: "enduser_account_name", label: "Enduser Account Name" },
+  { value: "part_number", label: "Part Number" },
+  { value: "division", label: "Division" },
+];
+
 export type VCenterVersionHint = "7.x" | "8.x";
 
 export interface VCenterConnection {
@@ -64,4 +86,5 @@ export interface VCenterInventoryItem {
   total_cores: number | null;
   license_key: string | null;
   collected_at: string;
+  project_id: number | null;
 }
