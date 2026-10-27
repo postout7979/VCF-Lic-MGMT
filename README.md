@@ -12,38 +12,41 @@ License management tooling for VMware Cloud Foundation (VCF).
 ```
 backend/   FastAPI app, models, schemas, API routes, tests
 frontend/  React + Vite + TypeScript UI
-docker-compose.yml  Local PostgreSQL
+docker-compose.yml  db + backend + frontend containers
 ```
 
-## Getting started
-
-### Database
+## Getting started (Docker)
 
 ```
-docker compose up -d
+docker compose up --build
 ```
 
-### Backend
+This starts three containers:
+
+- `db` — PostgreSQL 16 on `localhost:5432`
+- `backend` — FastAPI on `http://localhost:8000` (docs at `/docs`)
+- `frontend` — Vite dev server on `http://localhost:5173`, proxying `/api` to the backend container
+
+The backend creates its tables automatically on startup once the database is healthy (no Alembic migration yet).
+
+### Running without Docker
 
 ```
+# database only
+docker compose up -d db
+
+# backend
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 uvicorn app.main:app --reload
-```
 
-API available at `http://localhost:8000`, docs at `http://localhost:8000/docs`.
-
-### Frontend
-
-```
+# frontend
 cd frontend
 npm install
 npm run dev
 ```
-
-UI available at `http://localhost:5173`.
 
 ## Features
 
