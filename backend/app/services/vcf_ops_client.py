@@ -174,35 +174,15 @@ def _collect_entitlements_via_browser(base: str, username: str, password: str) -
     return rows
 
 
-def collect_core_license_usage(
-    host: str,
-    auth_method: str,
-    username: str | None = None,
-    password: str | None = None,
-    api_token: str | None = None,
-) -> tuple[str | None, list[dict]]:
+def collect_core_license_usage(host: str, username: str, password: str) -> tuple[str | None, list[dict]]:
     """Log in to VCF 9 Operations and collect core license allocation/usage
     rows (the same data shown on Manage > Licensing > Licenses & Registration).
 
     Returns (detected_version, rows). Raises ValueError on a connection or
     authentication failure.
-
-    License-row collection requires an interactive username/password login
-    (see `_collect_entitlements_via_browser`), so it only runs in
-    "credentials" mode; "token" mode only verifies the token against
-    suite-api and reports the detected version, with an empty license list.
     """
     _check_reachable(host)
     base = f"https://{host}"
-
-    if auth_method == "token":
-        if not api_token:
-            raise ValueError("API 토큰이 설정되지 않았습니다.")
-        detected_version = _detect_version(base, api_token)
-        return detected_version, []
-
-    if not username or not password:
-        raise ValueError("사용자 이름과 비밀번호가 설정되지 않았습니다.")
 
     suite_api_token = _acquire_suite_api_token(base, username, password)
     detected_version = _detect_version(base, suite_api_token)

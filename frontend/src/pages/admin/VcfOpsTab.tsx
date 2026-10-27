@@ -76,7 +76,6 @@ function VcfOpsTab() {
               <tr>
                 <th>Ops 연결 이름</th>
                 <th>Host</th>
-                <th>인증 방식</th>
                 <th>버전</th>
                 <th>상태</th>
                 <th>수집된 라이센스 수</th>
@@ -89,7 +88,6 @@ function VcfOpsTab() {
                 <tr key={connection.id}>
                   <td>{connection.name}</td>
                   <td>{connection.host}</td>
-                  <td>{connection.auth_method === "token" ? "API 토큰" : "아이디/비밀번호"}</td>
                   <td>{connection.detected_version ?? "-"}</td>
                   <td>
                     <StatusBadge status={connection.status} />

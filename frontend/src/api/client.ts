@@ -8,7 +8,6 @@ import type {
   VCenterConnection,
   VCenterInventoryItem,
   VCenterVersionHint,
-  VcfOpsAuthMethod,
   VcfOpsConnection,
   VcfOpsCoreLicenseItem,
 } from "../types";
@@ -189,10 +188,8 @@ export function fetchVcfOpsConnections(): Promise<VcfOpsConnection[]> {
 export function createVcfOpsConnection(payload: {
   name: string;
   host: string;
-  auth_method: VcfOpsAuthMethod;
-  username?: string;
-  password?: string;
-  api_token?: string;
+  username: string;
+  password: string;
 }): Promise<VcfOpsConnection> {
   return request<VcfOpsConnection>("/vcf-ops/connections", {
     method: "POST",

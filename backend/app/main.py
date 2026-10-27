@@ -35,6 +35,13 @@ SCHEMA_PATCHES = [
     "ALTER TABLE vcf_ops_connections ADD COLUMN IF NOT EXISTS api_token VARCHAR",
     "ALTER TABLE vcf_ops_connections ALTER COLUMN username DROP NOT NULL",
     "ALTER TABLE vcf_ops_connections ALTER COLUMN password DROP NOT NULL",
+    # Token-based login was removed; credentials are required again.
+    "ALTER TABLE vcf_ops_connections DROP COLUMN IF EXISTS auth_method",
+    "ALTER TABLE vcf_ops_connections DROP COLUMN IF EXISTS api_token",
+    "UPDATE vcf_ops_connections SET username = '' WHERE username IS NULL",
+    "UPDATE vcf_ops_connections SET password = '' WHERE password IS NULL",
+    "ALTER TABLE vcf_ops_connections ALTER COLUMN username SET NOT NULL",
+    "ALTER TABLE vcf_ops_connections ALTER COLUMN password SET NOT NULL",
 ]
 
 app = FastAPI(title="VCF License Management")

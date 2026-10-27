@@ -14,12 +14,10 @@ class VcfOpsConnection(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     host: Mapped[str] = mapped_column(String, nullable=False)
-    auth_method: Mapped[str] = mapped_column(String, default="credentials")  # credentials|token
-    username: Mapped[str | None] = mapped_column(String, nullable=True)
+    username: Mapped[str] = mapped_column(String, nullable=False)
     # NOTE: stored in plain text for this internal tool; use a secrets
     # manager / encrypted column before exposing this beyond a trusted network.
-    password: Mapped[str | None] = mapped_column(String, nullable=True)
-    api_token: Mapped[str | None] = mapped_column(String, nullable=True)
+    password: Mapped[str] = mapped_column(String, nullable=False)
     detected_version: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String, default="pending")  # pending|connected|failed
     last_error: Mapped[str | None] = mapped_column(String, nullable=True)
