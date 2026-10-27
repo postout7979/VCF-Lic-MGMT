@@ -3,11 +3,13 @@ import { useState } from "react";
 import LegacyInfraTab from "./admin/LegacyInfraTab";
 import ProjectAdminTab from "./admin/ProjectAdminTab";
 import SupplierDataTab from "./admin/SupplierDataTab";
+import VcfOpsTab from "./admin/VcfOpsTab";
 
 const TABS = [
   { key: "supplier-data", label: "공급자 데이터" },
   { key: "project", label: "프로젝트" },
   { key: "legacy-infra", label: "Legacy Infra" },
+  { key: "vcf-ops", label: "VCF" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -17,7 +19,7 @@ function AdminPage() {
 
   return (
     <div>
-      <h1 className="page-title">관리자</h1>
+      <h1 className="page-title">설정</h1>
       <div className="tab-bar">
         {TABS.map((tab) => (
           <button
@@ -32,6 +34,7 @@ function AdminPage() {
       {activeTab === "supplier-data" && <SupplierDataTab />}
       {activeTab === "project" && <ProjectAdminTab />}
       {activeTab === "legacy-infra" && <LegacyInfraTab />}
+      {activeTab === "vcf-ops" && <VcfOpsTab />}
     </div>
   );
 }

@@ -8,6 +8,8 @@ import type {
   VCenterConnection,
   VCenterInventoryItem,
   VCenterVersionHint,
+  VcfOpsConnection,
+  VcfOpsCoreLicenseItem,
 } from "../types";
 
 const BASE = "/api/v1";
@@ -177,4 +179,36 @@ export function assignVCenterItemsToProject(
     method: "POST",
     body: JSON.stringify({ item_ids: itemIds }),
   });
+}
+
+export function fetchVcfOpsConnections(): Promise<VcfOpsConnection[]> {
+  return request<VcfOpsConnection[]>("/vcf-ops/connections");
+}
+
+export function createVcfOpsConnection(payload: {
+  name: string;
+  host: string;
+  username: string;
+  password: string;
+}): Promise<VcfOpsConnection> {
+  return request<VcfOpsConnection>("/vcf-ops/connections", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function syncVcfOpsConnection(connectionId: number): Promise<VcfOpsConnection> {
+  return request<VcfOpsConnection>(`/vcf-ops/connections/${connectionId}/sync`, {
+    method: "POST",
+  });
+}
+
+export function deleteVcfOpsConnection(connectionId: number): Promise<void> {
+  return request<void>(`/vcf-ops/connections/${connectionId}`, {
+    method: "DELETE",
+  });
+}
+
+export function fetchVcfOpsInventory(connectionId: number): Promise<VcfOpsCoreLicenseItem[]> {
+  return request<VcfOpsCoreLicenseItem[]>(`/vcf-ops/connections/${connectionId}/inventory`);
 }

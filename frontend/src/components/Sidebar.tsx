@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 
 const NAV_ITEMS = [
-  { to: "/admin", label: "관리자" },
+  { to: "/admin", label: "설정" },
   { to: "/license-overview", label: "라이센스 종합 현황" },
   { to: "/realtime-usage", label: "실시간 사용 현황" },
   { to: "/projects", label: "공급자 현황" },

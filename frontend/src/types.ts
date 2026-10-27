@@ -100,3 +100,27 @@ export interface VCenterInventoryItem {
   collected_at: string;
   project_id: number | null;
 }
+
+export interface VcfOpsConnection {
+  id: number;
+  name: string;
+  host: string;
+  username: string;
+  detected_version: string | null;
+  status: "pending" | "connected" | "failed";
+  last_error: string | null;
+  last_synced_at: string | null;
+  created_at: string;
+  license_count: number;
+}
+
+export interface VcfOpsCoreLicenseItem {
+  id: number;
+  license_key: string | null;
+  license_type: string | null;
+  license_status: string | null;
+  domain_name: string | null;
+  core_capacity: number | null;
+  core_used: number | null;
+  collected_at: string;
+}
