@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { fetchVCenterInventory } from "../api/client";
+import LicenseTypeBadge from "./LicenseTypeBadge";
 import type { VCenterConnection, VCenterInventoryItem } from "../types";
 
 interface Props {
@@ -42,6 +43,7 @@ function VCenterInventoryModal({ connection, onClose }: Props) {
                   <th>Cores / Socket</th>
                   <th>Total Cores</th>
                   <th>License Key</th>
+                  <th>라이센스 구분</th>
                 </tr>
               </thead>
               <tbody>
@@ -54,6 +56,13 @@ function VCenterInventoryModal({ connection, onClose }: Props) {
                     <td>{item.cores_per_socket}</td>
                     <td>{item.total_cores}</td>
                     <td>{item.license_key}</td>
+                    <td>
+                      {item.license_category ? (
+                        <LicenseTypeBadge licenseType={item.license_category} />
+                      ) : (
+                        <span className="text-muted">확인 불가</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

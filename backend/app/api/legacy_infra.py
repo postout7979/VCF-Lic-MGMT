@@ -59,7 +59,12 @@ def _sync_connection(connection: VCenterConnection, db: Session) -> None:
     }
     seen_hosts: set[str] = set()
 
+    # Show the connection's own name + FQDN/IP rather than vCenter's reported
+    # version/build string, which isn't useful for telling instances apart.
+    display_name = f"{connection.name}({connection.host})"
+
     for row in rows:
+        row["vcenter_name"] = display_name
         host_name = row.get("host_name")
         seen_hosts.add(host_name)
         existing = existing_by_host.get(host_name)

@@ -31,6 +31,21 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         .scalar()
         or 0
     )
+    vcenter_count = (
+        db.query(func.count(func.distinct(VCenterInventoryItem.vcenter_name)))
+        .filter(VCenterInventoryItem.project_id == project.id)
+        .scalar()
+        or 0
+    )
+    vcenter_license_key_count = (
+        db.query(func.count(func.distinct(VCenterInventoryItem.license_key)))
+        .filter(
+            VCenterInventoryItem.project_id == project.id,
+            VCenterInventoryItem.license_key.isnot(None),
+        )
+        .scalar()
+        or 0
+    )
     return ProjectSummary(
         id=project.id,
         name=project.name,
@@ -38,6 +53,8 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         created_at=project.created_at,
         perpetual_quantity=_quantity_sum(db, project.id, "PERPETUAL"),
         subscription_quantity=_quantity_sum(db, project.id, "SUBSCRIPTION"),
+        vcenter_count=vcenter_count,
+        vcenter_license_key_count=vcenter_license_key_count,
         item_count=item_count,
     )
 

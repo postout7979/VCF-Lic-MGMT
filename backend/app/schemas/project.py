@@ -20,6 +20,8 @@ class ProjectSummary(BaseModel):
     perpetual_quantity: int
     subscription_quantity: int
     item_count: int
+    vcenter_count: int = 0
+    vcenter_license_key_count: int = 0
 
 
 class ProjectDetail(ProjectSummary):

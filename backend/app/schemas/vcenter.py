@@ -23,6 +23,7 @@ class VCenterInventoryItemRead(BaseModel):
     cores_per_socket: int | None
     total_cores: int | None
     license_key: str | None
+    license_category: str | None = None
     collected_at: datetime
     project_id: int | None = None
 

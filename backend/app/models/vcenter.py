@@ -46,6 +46,7 @@ class VCenterInventoryItem(Base):
     cores_per_socket: Mapped[int | None] = mapped_column(Integer, nullable=True)
     total_cores: Mapped[int | None] = mapped_column(Integer, nullable=True)
     license_key: Mapped[str | None] = mapped_column(String, nullable=True)
+    license_category: Mapped[str | None] = mapped_column(String, nullable=True)  # PERPETUAL|SUBSCRIPTION
     collected_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     project_id: Mapped[int | None] = mapped_column(

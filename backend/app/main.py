@@ -18,6 +18,15 @@ from app.models import (  # noqa: F401  (register models with Base)
 # existed in a running database. Remove once Alembic migrations are in place.
 SCHEMA_PATCHES = [
     "ALTER TABLE vcenter_inventory_items ADD COLUMN IF NOT EXISTS project_id INTEGER REFERENCES projects(id)",
+    "ALTER TABLE vcenter_inventory_items ADD COLUMN IF NOT EXISTS license_category VARCHAR",
+    # vcenter_name used to store vCenter's own version/build string; backfill
+    # already-collected rows to the connection-name(host) display format too.
+    """
+    UPDATE vcenter_inventory_items vi
+    SET vcenter_name = vc.name || '(' || vc.host || ')'
+    FROM vcenter_connections vc
+    WHERE vi.connection_id = vc.id
+    """,
 ]
 
 app = FastAPI(title="VCF License Management")

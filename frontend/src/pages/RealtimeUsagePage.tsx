@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { fetchProjects, fetchVCenterItems } from "../api/client";
+import LicenseTypeBadge from "../components/LicenseTypeBadge";
 import type { ProjectSummary, VCenterInventoryItem } from "../types";
 
 function RealtimeUsagePage() {
@@ -126,6 +127,7 @@ function RealtimeUsagePage() {
                         <th>Cluster Name</th>
                         <th>Host Name</th>
                         <th>License Key</th>
+                        <th>라이센스 구분</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -134,6 +136,13 @@ function RealtimeUsagePage() {
                           <td>{item.cluster_name}</td>
                           <td>{item.host_name}</td>
                           <td>{item.license_key}</td>
+                          <td>
+                            {item.license_category ? (
+                              <LicenseTypeBadge licenseType={item.license_category} />
+                            ) : (
+                              <span className="text-muted">확인 불가</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

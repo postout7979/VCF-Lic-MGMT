@@ -75,6 +75,8 @@ function ProjectAdminTab() {
               <th>할당된 항목 수</th>
               <th>Perpetual 합계</th>
               <th>Subscription 합계</th>
+              <th>vCenter 수</th>
+              <th>할당된 라이센스 키 수</th>
               <th></th>
             </tr>
           </thead>
@@ -86,6 +88,8 @@ function ProjectAdminTab() {
                 <td>{project.item_count}</td>
                 <td>{project.perpetual_quantity.toLocaleString()}</td>
                 <td>{project.subscription_quantity.toLocaleString()}</td>
+                <td>{project.vcenter_count}</td>
+                <td>{project.vcenter_license_key_count}</td>
                 <td style={{ display: "flex", gap: 6 }}>
                   <button
                     className="btn btn-secondary"

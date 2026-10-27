@@ -25,6 +25,8 @@ export interface ProjectSummary {
   perpetual_quantity: number;
   subscription_quantity: number;
   item_count: number;
+  vcenter_count: number;
+  vcenter_license_key_count: number;
 }
 
 export interface ProjectDetail extends ProjectSummary {
@@ -85,6 +87,7 @@ export interface VCenterInventoryItem {
   cores_per_socket: number | null;
   total_cores: number | null;
   license_key: string | null;
+  license_category: string | null;
   collected_at: string;
   project_id: number | null;
 }

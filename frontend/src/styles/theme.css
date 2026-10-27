@@ -452,9 +452,10 @@ select:focus {
 
 .vc-tree-host-cols {
   display: grid;
-  grid-template-columns: 2fr 1fr 2fr;
+  grid-template-columns: 2fr 1fr 2fr 1fr;
   flex: 1;
   gap: 12px;
+  align-items: center;
 }
 
 /* stat banners */

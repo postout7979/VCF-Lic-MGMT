@@ -40,8 +40,6 @@ def collect_inventory(host: str, username: str, password: str) -> tuple[str, lis
         if major not in SUPPORTED_MAJOR_VERSIONS:
             raise ValueError(f"지원하지 않는 vCenter 버전입니다: {detected_version} (7.x/8.x만 지원)")
 
-        vcenter_name = about.fullName
-
         try:
             license_assignment_manager = si.content.licenseManager.licenseAssignmentManager
         except Exception:
@@ -65,25 +63,35 @@ def collect_inventory(host: str, username: str, password: str) -> tuple[str, lis
                     )
 
                     license_key = None
+                    license_category = None
                     if license_assignment_manager is not None:
                         try:
                             assignments = license_assignment_manager.QueryAssignedLicenses(
                                 entityId=host_system._moId
                             )
                             if assignments:
-                                license_key = assignments[0].assignedLicense.licenseKey
+                                assigned = assignments[0].assignedLicense
+                                license_key = assigned.licenseKey
+                                # A term/subscription license carries an
+                                # "expirationDate" property; a perpetual
+                                # license does not.
+                                props = {p.key: p.value for p in (assigned.properties or [])}
+                                license_category = (
+                                    "SUBSCRIPTION" if "expirationDate" in props else "PERPETUAL"
+                                )
                         except Exception:
                             license_key = None
+                            license_category = None
 
                     inventory.append(
                         {
-                            "vcenter_name": vcenter_name,
                             "cluster_name": cluster_name,
                             "host_name": host_system.name,
                             "cpu_sockets": cpu_sockets,
                             "cores_per_socket": cores_per_socket,
                             "total_cores": total_cores,
                             "license_key": license_key,
+                            "license_category": license_category,
                         }
                     )
         finally:

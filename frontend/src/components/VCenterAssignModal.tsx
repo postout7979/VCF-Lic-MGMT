@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { assignVCenterItemsToProject, fetchVCenterItems } from "../api/client";
+import LicenseTypeBadge from "./LicenseTypeBadge";
 import type { ProjectSummary, VCenterInventoryItem } from "../types";
 
 interface Props {
@@ -213,6 +214,13 @@ function VCenterAssignModal({ project, onClose, onAssigned }: Props) {
                                     <span>{host.host_name}</span>
                                     <span>물리 코어 {host.total_cores ?? "-"}</span>
                                     <span>{host.license_key ?? "-"}</span>
+                                    <span>
+                                      {host.license_category ? (
+                                        <LicenseTypeBadge licenseType={host.license_category} />
+                                      ) : (
+                                        "확인 불가"
+                                      )}
+                                    </span>
                                   </div>
                                 </div>
                               ))}
