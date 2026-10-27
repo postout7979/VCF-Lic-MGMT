@@ -2,9 +2,12 @@ import socket
 
 import requests
 import urllib3
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import sync_playwright
 
 CONNECT_TIMEOUT_SECONDS = 8
 REQUEST_TIMEOUT_SECONDS = 15
+BROWSER_DEFAULT_TIMEOUT_MS = 30000
 
 # Internal VCF Operations instances commonly use self-signed certificates;
 # certificate validation is intentionally skipped below rather than requiring
@@ -20,7 +23,7 @@ def _check_reachable(host: str, port: int = 443) -> None:
         raise ValueError(f"VCF Operations 서버({host}:{port})에 연결할 수 없습니다: {exc}") from exc
 
 
-def _acquire_token(base: str, username: str, password: str) -> str:
+def _acquire_suite_api_token(base: str, username: str, password: str) -> str:
     """Log in with username/password via the Aria/VCF Operations suite-api
     and return a session token.
 
@@ -48,6 +51,129 @@ def _acquire_token(base: str, username: str, password: str) -> str:
     return token
 
 
+def _detect_version(base: str, token: str) -> str | None:
+    """A lightweight authenticated suite-api call that doubles as an auth
+    check: a bad token surfaces here as a 401 instead of silently returning
+    no data later."""
+    headers = {"Authorization": f"vRealizeOpsToken {token}", "Accept": "application/json"}
+    try:
+        resp = requests.get(
+            f"{base}/suite-api/api/versions/current",
+            headers=headers,
+            verify=False,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        resp.raise_for_status()
+    except requests.RequestException as exc:
+        raise ValueError(f"VCF Operations 인증이 거부되었습니다: {exc}") from exc
+
+    body = resp.json() if resp.content else {}
+    return body.get("releaseName") or body.get("humanReadableReleaseName")
+
+
+def _collect_entitlements_via_browser(base: str, username: str, password: str) -> list[dict]:
+    """Log in to the VCF Operations *web UI* and collect the per-product
+    core/TiB license entitlement rows shown on Manage > Licensing >
+    Licenses & Registration.
+
+    That page's data comes from a UI-internal REST endpoint
+    (`/vcf-operations/rest/ops/internal/extension/vcf-entitlement/entitlements/query`)
+    that is only reachable through a real, fully bootstrapped browser
+    session (a suite-api token, or a hand-replicated cookie/CSRF-header
+    combination, both returned 400s in testing) - logging in through the UI
+    also establishes a second, nested "platform" session beyond the initial
+    one, which calling the REST endpoint directly skips. A headless
+    Chromium instance is used here to log in and navigate exactly like a
+    real user, then the page's own XHR response for that endpoint is
+    captured rather than re-issuing our own request (a manual GET to the
+    same URL after login was rejected with 405, most likely due to extra
+    validation Angular's HttpClient attaches that wasn't reverse-engineered).
+    """
+    captured: dict = {}
+
+    def on_response(resp):
+        if "/vcf-entitlement/entitlements/query" in resp.url and resp.status == 200:
+            try:
+                captured["body"] = resp.json()
+            except Exception:
+                pass
+
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(args=["--ignore-certificate-errors"])
+            try:
+                context = browser.new_context(ignore_https_errors=True)
+                page = context.new_page()
+                page.set_default_timeout(BROWSER_DEFAULT_TIMEOUT_MS)
+                # A concurrent-session warning (from repeated syncs) shows as
+                # a confirm() dialog in the browser; accept it like a user
+                # clicking "OK" so the login can proceed with forceLogin.
+                page.on("dialog", lambda d: d.accept())
+                page.on("response", on_response)
+
+                page.goto(f"{base}/ui/login.action?vcf=1", wait_until="domcontentloaded")
+                page.wait_for_timeout(1500)
+
+                # Default "Login Method" is VCF SSO, which hides the
+                # username/password fields; switch to Local Account first.
+                page.click("#authSelector-inputEl")
+                page.wait_for_timeout(500)
+                page.get_by_text("Local Account", exact=True).click()
+                page.wait_for_timeout(500)
+                page.fill("#userName-inputEl", username)
+                page.fill("#password-inputEl", password)
+                page.click("text=LOG IN")
+                page.wait_for_timeout(5000)
+
+                if "login.action" in page.url:
+                    raise ValueError("VCF Operations 로그인에 실패했습니다 (아이디/비밀번호를 확인하세요).")
+
+                # Navigate to Manage > Licensing > Licenses & Registration;
+                # this is what triggers the entitlements/query call.
+                page.get_by_text("Manage", exact=True).click()
+                page.wait_for_timeout(1500)
+                page.get_by_text("Licensing", exact=True).click()
+                page.wait_for_timeout(1500)
+                page.get_by_text("Licenses & Registration", exact=True).click()
+                page.wait_for_timeout(5000)
+            finally:
+                browser.close()
+    except PlaywrightTimeoutError as exc:
+        raise ValueError(f"VCF Operations 웹 UI 탐색이 지연되어 라이센스 정보를 가져오지 못했습니다: {exc}") from exc
+
+    body = captured.get("body")
+    if not body:
+        # Login/navigation succeeded but the UI's own layout or route may
+        # have changed since this was written - degrade to an empty list
+        # rather than failing the whole sync, since the connection itself
+        # (and its detected version) is still valid.
+        return []
+
+    rows: list[dict] = []
+    for entry in body.get("entitlementWithVcentersDetails", []):
+        info = entry.get("entitlementInfo", {})
+        vcenters = entry.get("assignedVcenters", [])
+        domain_name = (
+            ", ".join(
+                v.get("vcenterInfo", {}).get("adapterName") or v.get("vcenterInfo", {}).get("host") or "?"
+                for v in vcenters
+            )
+            or None
+        )
+        issues = info.get("issues") or []
+        rows.append(
+            {
+                "license_key": info.get("productDisplayName") or info.get("name"),
+                "license_type": f"{info.get('type', '-')} ({info.get('unitOfMeasure', '-')})",
+                "license_status": "이슈 있음" if issues else "정상",
+                "domain_name": domain_name,
+                "core_capacity": info.get("capacity"),
+                "core_used": info.get("usage"),
+            }
+        )
+    return rows
+
+
 def collect_core_license_usage(
     host: str,
     auth_method: str,
@@ -55,18 +181,16 @@ def collect_core_license_usage(
     password: str | None = None,
     api_token: str | None = None,
 ) -> tuple[str | None, list[dict]]:
-    """Log in to VCF 9 Operations (via credentials or a pre-issued API
-    token) and collect core license allocation/usage rows.
+    """Log in to VCF 9 Operations and collect core license allocation/usage
+    rows (the same data shown on Manage > Licensing > Licenses & Registration).
 
     Returns (detected_version, rows). Raises ValueError on a connection or
-    authentication failure. The license rows themselves are collected via a
-    best-effort resource/stat lookup (VCF Operations surfaces license
-    consumption as resource stats rather than a dedicated endpoint, and the
-    exact resource kind / stat key names are version-specific and weren't
-    confirmed against a live VCF 9 environment) — a failure or empty result
-    at that stage does not fail the sync, since auth succeeding is the part
-    that matters for "connected" status; adjust the resource/stat matching
-    below once the real key names for this environment are known.
+    authentication failure.
+
+    License-row collection requires an interactive username/password login
+    (see `_collect_entitlements_via_browser`), so it only runs in
+    "credentials" mode; "token" mode only verifies the token against
+    suite-api and reports the detected version, with an empty license list.
     """
     _check_reachable(host)
     base = f"https://{host}"
@@ -74,97 +198,13 @@ def collect_core_license_usage(
     if auth_method == "token":
         if not api_token:
             raise ValueError("API 토큰이 설정되지 않았습니다.")
-        token = api_token
-    else:
-        if not username or not password:
-            raise ValueError("사용자 이름과 비밀번호가 설정되지 않았습니다.")
-        token = _acquire_token(base, username, password)
+        detected_version = _detect_version(base, api_token)
+        return detected_version, []
 
-    headers = {"Authorization": f"vRealizeOpsToken {token}", "Accept": "application/json"}
+    if not username or not password:
+        raise ValueError("사용자 이름과 비밀번호가 설정되지 않았습니다.")
 
-    # A lightweight authenticated call doubles as an auth check: a bad token
-    # surfaces here as a 401 instead of silently returning no data later.
-    try:
-        version_resp = requests.get(
-            f"{base}/suite-api/api/versions/current",
-            headers=headers,
-            verify=False,
-            timeout=REQUEST_TIMEOUT_SECONDS,
-        )
-        version_resp.raise_for_status()
-    except requests.RequestException as exc:
-        raise ValueError(f"VCF Operations 인증이 거부되었습니다: {exc}") from exc
-
-    version_body = version_resp.json() if version_resp.content else {}
-    detected_version = version_body.get("releaseName") or version_body.get("humanReadableReleaseName")
-
-    rows: list[dict] = []
-    try:
-        res_resp = requests.get(
-            f"{base}/suite-api/api/resources",
-            headers=headers,
-            params={"pageSize": 1000},
-            verify=False,
-            timeout=REQUEST_TIMEOUT_SECONDS,
-        )
-        res_resp.raise_for_status()
-        resources = (res_resp.json() or {}).get("resourceList", [])
-        license_resources = [
-            r
-            for r in resources
-            if "licens" in (r.get("resourceKey", {}).get("resourceKindKey") or "").lower()
-        ]
-
-        for res in license_resources:
-            resource_id = res.get("identifier")
-            resource_key = res.get("resourceKey", {})
-            stats_resp = requests.get(
-                f"{base}/suite-api/api/resources/{resource_id}/stats/latest",
-                headers=headers,
-                verify=False,
-                timeout=REQUEST_TIMEOUT_SECONDS,
-            )
-            if not stats_resp.ok:
-                continue
-
-            stat_values: dict[str, float] = {}
-            for entry in (stats_resp.json() or {}).get("values", []):
-                for stat in entry.get("stat-list", {}).get("stat", []):
-                    key = stat.get("statKey", {}).get("key", "")
-                    data = stat.get("data") or []
-                    if data:
-                        stat_values[key] = data[-1]
-
-            core_capacity = next(
-                (
-                    v
-                    for k, v in stat_values.items()
-                    if "core" in k.lower() and ("cap" in k.lower() or "total" in k.lower())
-                ),
-                None,
-            )
-            core_used = next(
-                (
-                    v
-                    for k, v in stat_values.items()
-                    if "core" in k.lower() and ("used" in k.lower() or "consum" in k.lower())
-                ),
-                None,
-            )
-            if core_capacity is None and core_used is None:
-                continue
-
-            rows.append(
-                {
-                    "license_key": None,
-                    "license_type": resource_key.get("resourceKindKey"),
-                    "license_status": (res.get("resourceStatusStates") or [{}])[0].get("resourceStatus"),
-                    "domain_name": resource_key.get("name"),
-                    "core_capacity": int(core_capacity) if core_capacity is not None else None,
-                    "core_used": int(core_used) if core_used is not None else None,
-                }
-            )
-    except requests.RequestException:
-        rows = []
-
+    suite_api_token = _acquire_suite_api_token(base, username, password)
+    detected_version = _detect_version(base, suite_api_token)
+    rows = _collect_entitlements_via_browser(base, username, password)
     return detected_version, rows

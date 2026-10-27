@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+# Headless Chromium for the VCF Operations "internal" UI API, which is only
+# reachable through a real logged-in browser session (see vcf_ops_client.py).
+RUN playwright install --with-deps chromium
 
 COPY app ./app
 
