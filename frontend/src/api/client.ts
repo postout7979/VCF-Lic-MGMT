@@ -1,4 +1,12 @@
-import type { LicenseItem, ProjectDetail, ProjectSummary, UploadResult } from "../types";
+import type {
+  LicenseItem,
+  ProjectDetail,
+  ProjectSummary,
+  UploadResult,
+  VCenterConnection,
+  VCenterInventoryItem,
+  VCenterVersionHint,
+} from "../types";
 
 const BASE = "/api/v1";
 
@@ -56,4 +64,39 @@ export function assignItemsToProject(
     method: "POST",
     body: JSON.stringify({ item_ids: itemIds }),
   });
+}
+
+export function fetchVCenterConnections(): Promise<VCenterConnection[]> {
+  return request<VCenterConnection[]>("/legacy-infra/vcenter-connections");
+}
+
+export function createVCenterConnection(payload: {
+  name: string;
+  host: string;
+  username: string;
+  password: string;
+  version_hint: VCenterVersionHint;
+}): Promise<VCenterConnection> {
+  return request<VCenterConnection>("/legacy-infra/vcenter-connections", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function syncVCenterConnection(connectionId: number): Promise<VCenterConnection> {
+  return request<VCenterConnection>(`/legacy-infra/vcenter-connections/${connectionId}/sync`, {
+    method: "POST",
+  });
+}
+
+export function deleteVCenterConnection(connectionId: number): Promise<void> {
+  return request<void>(`/legacy-infra/vcenter-connections/${connectionId}`, {
+    method: "DELETE",
+  });
+}
+
+export function fetchVCenterInventory(connectionId: number): Promise<VCenterInventoryItem[]> {
+  return request<VCenterInventoryItem[]>(
+    `/legacy-infra/vcenter-connections/${connectionId}/inventory`,
+  );
 }

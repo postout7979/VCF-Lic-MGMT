@@ -1,11 +1,13 @@
 import { useState } from "react";
 
+import LegacyInfraTab from "./admin/LegacyInfraTab";
 import ProjectAdminTab from "./admin/ProjectAdminTab";
 import SupplierDataTab from "./admin/SupplierDataTab";
 
 const TABS = [
   { key: "supplier-data", label: "공급자 데이터" },
   { key: "project", label: "프로젝트" },
+  { key: "legacy-infra", label: "Legacy Infra" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -27,7 +29,9 @@ function AdminPage() {
           </button>
         ))}
       </div>
-      {activeTab === "supplier-data" ? <SupplierDataTab /> : <ProjectAdminTab />}
+      {activeTab === "supplier-data" && <SupplierDataTab />}
+      {activeTab === "project" && <ProjectAdminTab />}
+      {activeTab === "legacy-infra" && <LegacyInfraTab />}
     </div>
   );
 }

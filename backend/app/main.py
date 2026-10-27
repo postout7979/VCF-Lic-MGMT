@@ -1,11 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.legacy_infra import router as legacy_infra_router
 from app.api.projects import router as projects_router
 from app.api.supplier_data import router as supplier_data_router
 from app.core.config import settings
 from app.core.database import Base, engine
-from app.models import LicenseItem, Project  # noqa: F401  (register models with Base)
+from app.models import (  # noqa: F401  (register models with Base)
+    LicenseItem,
+    Project,
+    VCenterConnection,
+    VCenterInventoryItem,
+)
 
 app = FastAPI(title="VCF License Management")
 
@@ -18,6 +24,7 @@ app.add_middleware(
 
 app.include_router(supplier_data_router, prefix=settings.api_v1_prefix)
 app.include_router(projects_router, prefix=settings.api_v1_prefix)
+app.include_router(legacy_infra_router, prefix=settings.api_v1_prefix)
 
 
 @app.on_event("startup")

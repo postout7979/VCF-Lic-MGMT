@@ -28,24 +28,29 @@ function ProjectsListView() {
   }
 
   return (
-    <div className="project-grid">
-      {projects.map((project) => (
-        <div key={project.id} className="project-card" onClick={() => navigate(`/projects/${project.id}`)}>
-          <h3>{project.name}</h3>
-          <div className="sum-row">
-            <span>Perpetual</span>
-            <span className="sum-value">{project.perpetual_quantity.toLocaleString()}</span>
-          </div>
-          <div className="sum-row">
-            <span>Subscription</span>
-            <span className="sum-value">{project.subscription_quantity.toLocaleString()}</span>
-          </div>
-          <div className="sum-row">
-            <span>할당 항목 수</span>
-            <span className="sum-value">{project.item_count.toLocaleString()}</span>
-          </div>
-        </div>
-      ))}
+    <div className="card">
+      <table>
+        <thead>
+          <tr>
+            <th>프로젝트명</th>
+            <th>생성일</th>
+            <th>할당 항목 수</th>
+            <th>Perpetual 합계</th>
+            <th>Subscription 합계</th>
+          </tr>
+        </thead>
+        <tbody>
+          {projects.map((project) => (
+            <tr key={project.id} className="clickable" onClick={() => navigate(`/projects/${project.id}`)}>
+              <td>{project.name}</td>
+              <td>{new Date(project.created_at).toLocaleDateString()}</td>
+              <td>{project.item_count.toLocaleString()}</td>
+              <td>{project.perpetual_quantity.toLocaleString()}</td>
+              <td>{project.subscription_quantity.toLocaleString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

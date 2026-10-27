@@ -37,3 +37,31 @@ export interface UploadResult {
   skipped: number;
   errors: string[];
 }
+
+export type VCenterVersionHint = "7.x" | "8.x";
+
+export interface VCenterConnection {
+  id: number;
+  name: string;
+  host: string;
+  username: string;
+  version_hint: VCenterVersionHint;
+  detected_version: string | null;
+  status: "pending" | "connected" | "failed";
+  last_error: string | null;
+  last_synced_at: string | null;
+  created_at: string;
+  host_count: number;
+}
+
+export interface VCenterInventoryItem {
+  id: number;
+  vcenter_name: string | null;
+  cluster_name: string | null;
+  host_name: string | null;
+  cpu_sockets: number | null;
+  cores_per_socket: number | null;
+  total_cores: number | null;
+  license_key: string | null;
+  collected_at: string;
+}
