@@ -42,6 +42,7 @@ SCHEMA_PATCHES = [
     "UPDATE vcf_ops_connections SET password = '' WHERE password IS NULL",
     "ALTER TABLE vcf_ops_connections ALTER COLUMN username SET NOT NULL",
     "ALTER TABLE vcf_ops_connections ALTER COLUMN password SET NOT NULL",
+    "ALTER TABLE vcf_ops_core_license_items ADD COLUMN IF NOT EXISTS verified_core_used INTEGER",
 ]
 
 app = FastAPI(title="VCF License Management")

@@ -122,5 +122,6 @@ export interface VcfOpsCoreLicenseItem {
   domain_name: string | null;
   core_capacity: number | null;
   core_used: number | null;
+  verified_core_used: number | null;
   collected_at: string;
 }

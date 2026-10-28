@@ -44,6 +44,11 @@ class VcfOpsCoreLicenseItem(Base):
     domain_name: Mapped[str | None] = mapped_column(String, nullable=True)
     core_capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     core_used: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Cross-checked usage figure from the suite-api usage/offline/report
+    # endpoint (KB 448518's 180-day license usage report), independent of
+    # the web-UI-scraped core_used above. Null when that report had no
+    # matching product/unit-of-measure entry.
+    verified_core_used: Mapped[int | None] = mapped_column(Integer, nullable=True)
     collected_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     connection = relationship("VcfOpsConnection", back_populates="core_license_items")

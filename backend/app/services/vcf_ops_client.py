@@ -1,4 +1,8 @@
+import base64
+import gzip
+import json
 import socket
+import time
 
 import requests
 import urllib3
@@ -69,6 +73,69 @@ def _detect_version(base: str, token: str) -> str | None:
 
     body = resp.json() if resp.content else {}
     return body.get("releaseName") or body.get("humanReadableReleaseName")
+
+
+def _decode_jws_payload(compact: str) -> dict:
+    """Decode the (unverified) payload segment of a compact JWS string.
+    The signature is not checked - this is only used to read claims from a
+    report fetched over an authenticated, TLS-protected connection to a
+    trusted internal instance, not to validate a third party's claims."""
+    payload_segment = compact.split(".")[1]
+    payload_segment += "=" * (-len(payload_segment) % 4)
+    return json.loads(base64.urlsafe_b64decode(payload_segment))
+
+
+def _collect_usage_report(base: str, token: str) -> dict[tuple[str, str], int]:
+    """Fetch the suite-api license usage report (the same report submitted
+    every ~180 days per KB 448518 to keep the license "heartbeat" alive:
+    `POST /suite-api/internal/extension/vcf-license-cloud-integration/usage/offline/report`)
+    and return the latest known usage quantity per (product_name, unit of
+    measure), used only as a cross-check against the web-UI-scraped figures.
+
+    Response body is `{"gzipJwsEncodedData": <base64>, "fileName": ..., "timestamp": ...}`.
+    That base64 blob is gzip-compressed, and the decompressed text is a
+    compact JWS whose payload is itself a report containing a
+    `jws_child_asset_usages` array of further nested compact-JWS usage
+    snapshots (one per asset, per time the report was generated) - the
+    newest snapshot per (asset_id, allocation_id) reflects current usage.
+    This report only ever contains usage figures, never capacity/allocation,
+    so it cannot replace the browser-scraped entitlement rows on its own.
+    """
+    now_ms = int(time.time() * 1000)
+    params = {"startDate": now_ms + 24 * 3600 * 1000, "endDate": now_ms + 30 * 24 * 3600 * 1000}
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": f"OpsToken {token}",
+        "X-Ops-API-use-unsupported": "true",
+    }
+    resp = requests.post(
+        f"{base}/suite-api/internal/extension/vcf-license-cloud-integration/usage/offline/report",
+        headers=headers,
+        params=params,
+        verify=False,
+        timeout=REQUEST_TIMEOUT_SECONDS,
+    )
+    resp.raise_for_status()
+
+    body = resp.json()
+    gzipped = base64.b64decode(body["gzipJwsEncodedData"])
+    report = _decode_jws_payload(gzip.decompress(gzipped).decode("utf-8"))
+
+    latest: dict[tuple[str, str], dict] = {}
+    for child in report.get("jws_child_asset_usages", []):
+        asset = _decode_jws_payload(child)
+        asset_id = asset.get("asset_id")
+        for entry in asset.get("license_usage_data", []):
+            key = (asset_id, entry["allocation_id"])
+            if key not in latest or entry["usage_end_time"] > latest[key]["usage_end_time"]:
+                latest[key] = entry
+
+    totals: dict[tuple[str, str], int] = {}
+    for entry in latest.values():
+        product_key = (entry["product_name"], entry["uom"])
+        totals[product_key] = totals.get(product_key, 0) + (entry.get("quantity") or 0)
+    return totals
 
 
 def _collect_entitlements_via_browser(base: str, username: str, password: str) -> list[dict]:
@@ -187,4 +254,23 @@ def collect_core_license_usage(host: str, username: str, password: str) -> tuple
     suite_api_token = _acquire_suite_api_token(base, username, password)
     detected_version = _detect_version(base, suite_api_token)
     rows = _collect_entitlements_via_browser(base, username, password)
+
+    try:
+        usage_totals = _collect_usage_report(base, suite_api_token)
+    except (requests.RequestException, KeyError, ValueError):
+        # Supplementary cross-check only; its absence must not fail the sync.
+        usage_totals = {}
+
+    for row in rows:
+        uom = (row.get("license_type") or "").rsplit("(", 1)[-1].rstrip(")")
+        license_key = (row.get("license_key") or "").lower()
+        row["verified_core_used"] = next(
+            (
+                quantity
+                for (product_name, product_uom), quantity in usage_totals.items()
+                if product_uom == uom and license_key.startswith(product_name.lower())
+            ),
+            None,
+        )
+
     return detected_version, rows

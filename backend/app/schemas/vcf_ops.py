@@ -20,6 +20,7 @@ class VcfOpsCoreLicenseItemRead(BaseModel):
     domain_name: str | None
     core_capacity: int | None
     core_used: int | None
+    verified_core_used: int | None
     collected_at: datetime
 
 

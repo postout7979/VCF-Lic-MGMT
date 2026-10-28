@@ -41,19 +41,28 @@ function VcfOpsInventoryModal({ connection, onClose }: Props) {
                   <th>상태</th>
                   <th>할당된 코어 수</th>
                   <th>사용 중인 코어 수</th>
+                  <th>검증된 사용량</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.domain_name ?? "-"}</td>
-                    <td>{item.license_key ?? "-"}</td>
-                    <td>{item.license_type ?? "-"}</td>
-                    <td>{item.license_status ?? "-"}</td>
-                    <td>{item.core_capacity ?? "-"}</td>
-                    <td>{item.core_used ?? "-"}</td>
-                  </tr>
-                ))}
+                {items.map((item) => {
+                  const mismatch =
+                    item.verified_core_used !== null &&
+                    item.verified_core_used !== item.core_used;
+                  return (
+                    <tr key={item.id}>
+                      <td>{item.domain_name ?? "-"}</td>
+                      <td>{item.license_key ?? "-"}</td>
+                      <td>{item.license_type ?? "-"}</td>
+                      <td>{item.license_status ?? "-"}</td>
+                      <td>{item.core_capacity ?? "-"}</td>
+                      <td>{item.core_used ?? "-"}</td>
+                      <td className={mismatch ? "error-text" : undefined}>
+                        {item.verified_core_used ?? "-"}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
