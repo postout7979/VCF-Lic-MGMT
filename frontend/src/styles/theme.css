@@ -329,6 +329,20 @@ select:focus {
   outline-offset: 1px;
 }
 
+/* borderless project-selector dropdown on the 현황 pages */
+
+select.select-plain {
+  border: none;
+  background: transparent;
+  padding: 10px 4px;
+  font-weight: 600;
+}
+
+select.select-plain:focus {
+  outline: none;
+  border-bottom: 2px solid var(--color-primary);
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
