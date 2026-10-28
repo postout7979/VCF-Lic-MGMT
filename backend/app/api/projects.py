@@ -91,8 +91,14 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         .scalar()
         or 0
     )
-    csp_expired_count = (
-        db.query(func.count(CspLicenseItem.id))
+    csp_core_quantity = (
+        db.query(func.coalesce(func.sum(CspLicenseItem.quantity), 0))
+        .filter(CspLicenseItem.project_id == project.id)
+        .scalar()
+        or 0
+    )
+    csp_core_quantity_expired = (
+        db.query(func.coalesce(func.sum(CspLicenseItem.quantity), 0))
         .filter(
             CspLicenseItem.project_id == project.id,
             CspLicenseItem.contract_end_date < date.today(),
@@ -117,7 +123,8 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         vcf_core_capacity=int(vcf_core_capacity),
         vcf_core_used=int(vcf_core_used),
         csp_license_count=int(csp_license_count),
-        csp_expired_count=int(csp_expired_count),
+        csp_core_quantity=int(csp_core_quantity),
+        csp_core_quantity_expired=int(csp_core_quantity_expired),
         user_count=int(user_count),
         item_count=item_count,
     )

@@ -32,9 +32,8 @@ function LicenseOverviewPage() {
           vcenterTerm: acc.vcenterTerm + p.vcenter_term_quantity,
           vcfCapacity: acc.vcfCapacity + p.vcf_core_capacity,
           vcfUsed: acc.vcfUsed + p.vcf_core_used,
-          cspCount: acc.cspCount + p.csp_license_count,
-          cspExpired: acc.cspExpired + p.csp_expired_count,
-          userCount: acc.userCount + p.user_count,
+          cspCoreQuantity: acc.cspCoreQuantity + p.csp_core_quantity,
+          cspCoreQuantityExpired: acc.cspCoreQuantityExpired + p.csp_core_quantity_expired,
         }),
         {
           perpetual: 0,
@@ -43,9 +42,8 @@ function LicenseOverviewPage() {
           vcenterTerm: 0,
           vcfCapacity: 0,
           vcfUsed: 0,
-          cspCount: 0,
-          cspExpired: 0,
-          userCount: 0,
+          cspCoreQuantity: 0,
+          cspCoreQuantityExpired: 0,
         },
       ),
     [projects],
@@ -74,7 +72,7 @@ function LicenseOverviewPage() {
           <div className="dashboard-grid">
             <div className="donut-grid">
               <DonutChart
-                title="공급자 라이센스 구성"
+                title="공급자 라이센스 현황"
                 segments={[
                   { label: "Perpetual", value: totals.perpetual, color: COLOR_PRIMARY },
                   { label: "Subscription", value: totals.subscription, color: COLOR_ORANGE },
@@ -83,7 +81,20 @@ function LicenseOverviewPage() {
                 centerLabel="합계 수량"
               />
               <DonutChart
-                title="vCenter 라이센스 구성"
+                title="CSP 현황"
+                segments={[
+                  {
+                    label: "유효",
+                    value: totals.cspCoreQuantity - totals.cspCoreQuantityExpired,
+                    color: COLOR_PRIMARY,
+                  },
+                  { label: "만료", value: totals.cspCoreQuantityExpired, color: COLOR_RED },
+                ]}
+                centerValue={totals.cspCoreQuantity.toLocaleString()}
+                centerLabel="코어 수 합계"
+              />
+              <DonutChart
+                title="Legacy 사용 현황"
                 segments={[
                   { label: "Perpetual", value: totals.vcenterPerpetual, color: COLOR_PRIMARY },
                   { label: "Term", value: totals.vcenterTerm, color: COLOR_ORANGE },
@@ -99,15 +110,6 @@ function LicenseOverviewPage() {
                 ]}
                 centerValue={`${vcfUsageRate}%`}
                 centerLabel={`${totals.vcfUsed.toLocaleString()} / ${totals.vcfCapacity.toLocaleString()}`}
-              />
-              <DonutChart
-                title="CSP 현황"
-                segments={[
-                  { label: "유효", value: totals.cspCount - totals.cspExpired, color: COLOR_PRIMARY },
-                  { label: "만료", value: totals.cspExpired, color: COLOR_RED },
-                ]}
-                centerValue={totals.cspCount.toLocaleString()}
-                centerLabel="총 항목 수"
               />
             </div>
           </div>
@@ -148,7 +150,7 @@ function LicenseOverviewPage() {
                     <th>라이센스 항목 수</th>
                     <th>할당 코어 수</th>
                     <th>사용 중 코어 수</th>
-                    <th>항목 수</th>
+                    <th>코어 수 합</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -165,7 +167,7 @@ function LicenseOverviewPage() {
                       <td>{project.vcf_license_count}</td>
                       <td>{project.vcf_core_capacity.toLocaleString()}</td>
                       <td>{project.vcf_core_used.toLocaleString()}</td>
-                      <td>{project.csp_license_count}</td>
+                      <td>{project.csp_core_quantity.toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
