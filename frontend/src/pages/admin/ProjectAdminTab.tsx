@@ -110,74 +110,76 @@ function ProjectAdminTab() {
       </div>
 
       <div className="card">
-        <table>
-          <thead>
-            <tr>
-              <th rowSpan={2}>프로젝트명</th>
-              <th rowSpan={2}>생성일</th>
-              <th colSpan={3} style={{ textAlign: "center" }}>
-                공급자 데이터
-              </th>
-              <th colSpan={3} style={{ textAlign: "center" }}>
-                vCenter 데이터
-              </th>
-              <th colSpan={3} style={{ textAlign: "center" }}>
-                VCF 데이터
-              </th>
-              <th rowSpan={2} style={{ textAlign: "center" }}>
-                CSP 데이터
-              </th>
-              <th rowSpan={2}></th>
-            </tr>
-            <tr>
-              <th>할당 항목 수</th>
-              <th>Perpetual 합계</th>
-              <th>Subscription 합계</th>
-              <th>vCenter 수</th>
-              <th>Perpetual 수량</th>
-              <th>Term 수량</th>
-              <th>라이센스 항목 수</th>
-              <th>할당 코어 수</th>
-              <th>사용 중 코어 수</th>
-              <th>할당 항목 수</th>
-            </tr>
-          </thead>
-          <tbody>
-            {projects.map((project) => (
-              <tr
-                key={project.id}
-                className={`clickable${project.id === selectedProjectId ? " selected-row" : ""}`}
-                onClick={() =>
-                  setSelectedProjectId((prev) => (prev === project.id ? null : project.id))
-                }
-              >
-                <td>{project.name}</td>
-                <td>{new Date(project.created_at).toLocaleDateString()}</td>
-                <td>{project.item_count}</td>
-                <td>{project.perpetual_quantity.toLocaleString()}</td>
-                <td>{project.subscription_quantity.toLocaleString()}</td>
-                <td>{project.vcenter_count}</td>
-                <td>{project.vcenter_perpetual_quantity.toLocaleString()}</td>
-                <td>{project.vcenter_term_quantity.toLocaleString()}</td>
-                <td>{project.vcf_license_count}</td>
-                <td>{project.vcf_core_capacity.toLocaleString()}</td>
-                <td>{project.vcf_core_used.toLocaleString()}</td>
-                <td>{project.csp_license_count}</td>
-                <td>
-                  <button
-                    className="btn btn-danger"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(project);
-                    }}
-                  >
-                    삭제
-                  </button>
-                </td>
+        <div style={{ overflowX: "auto" }}>
+          <table>
+            <thead>
+              <tr>
+                <th rowSpan={2}>프로젝트명</th>
+                <th rowSpan={2}>생성일</th>
+                <th colSpan={3} style={{ textAlign: "center" }}>
+                  공급자 데이터
+                </th>
+                <th colSpan={3} style={{ textAlign: "center" }}>
+                  vCenter 데이터
+                </th>
+                <th colSpan={3} style={{ textAlign: "center" }}>
+                  VCF 데이터
+                </th>
+                <th rowSpan={2} style={{ textAlign: "center" }}>
+                  CSP 데이터
+                </th>
+                <th rowSpan={2}></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+              <tr>
+                <th>할당 항목 수</th>
+                <th>Perpetual 합계</th>
+                <th>Subscription 합계</th>
+                <th>vCenter 수</th>
+                <th>Perpetual 수량</th>
+                <th>Term 수량</th>
+                <th>라이센스 항목 수</th>
+                <th>할당 코어 수</th>
+                <th>사용 중 코어 수</th>
+                <th>할당 항목 수</th>
+              </tr>
+            </thead>
+            <tbody>
+              {projects.map((project) => (
+                <tr
+                  key={project.id}
+                  className={`clickable${project.id === selectedProjectId ? " selected-row" : ""}`}
+                  onClick={() =>
+                    setSelectedProjectId((prev) => (prev === project.id ? null : project.id))
+                  }
+                >
+                  <td>{project.name}</td>
+                  <td>{new Date(project.created_at).toLocaleDateString()}</td>
+                  <td>{project.item_count}</td>
+                  <td>{project.perpetual_quantity.toLocaleString()}</td>
+                  <td>{project.subscription_quantity.toLocaleString()}</td>
+                  <td>{project.vcenter_count}</td>
+                  <td>{project.vcenter_perpetual_quantity.toLocaleString()}</td>
+                  <td>{project.vcenter_term_quantity.toLocaleString()}</td>
+                  <td>{project.vcf_license_count}</td>
+                  <td>{project.vcf_core_capacity.toLocaleString()}</td>
+                  <td>{project.vcf_core_used.toLocaleString()}</td>
+                  <td>{project.csp_license_count}</td>
+                  <td>
+                    <button
+                      className="btn btn-danger"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(project);
+                      }}
+                    >
+                      삭제
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {supplierAssignTarget && (
