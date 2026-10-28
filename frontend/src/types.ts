@@ -146,6 +146,7 @@ export interface User {
   password: string;
   email: string;
   is_admin: boolean;
+  show_supplier_menu: boolean;
   project_ids: number[];
   project_names: string[];
   security_answer_1: string | null;
@@ -193,6 +194,7 @@ export interface CurrentUser {
   name: string | null;
   email: string;
   is_admin: boolean;
+  show_supplier_menu: boolean;
   project_ids: number[];
   project_names: string[];
 }

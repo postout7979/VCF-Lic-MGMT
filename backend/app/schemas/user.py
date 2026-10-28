@@ -10,6 +10,7 @@ class UserCreate(BaseModel):
     security_answer_1: str
     security_answer_2: str
     security_answer_3: str
+    show_supplier_menu: bool = False
 
 
 class UserUpdate(BaseModel):
@@ -19,6 +20,7 @@ class UserUpdate(BaseModel):
     security_answer_1: str | None = None
     security_answer_2: str | None = None
     security_answer_3: str | None = None
+    show_supplier_menu: bool | None = None
 
 
 class UserRead(BaseModel):
@@ -30,6 +32,7 @@ class UserRead(BaseModel):
     password: str
     email: str
     is_admin: bool = False
+    show_supplier_menu: bool = False
     project_ids: list[int] = []
     project_names: list[str] = []
     security_answer_1: str | None = None

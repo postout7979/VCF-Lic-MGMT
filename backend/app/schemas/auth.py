@@ -12,6 +12,7 @@ class CurrentUser(BaseModel):
     name: str | None = None
     email: str
     is_admin: bool
+    show_supplier_menu: bool = False
     project_ids: list[int] = []
     project_names: list[str] = []
 

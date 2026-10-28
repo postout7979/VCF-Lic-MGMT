@@ -25,6 +25,7 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
   const [answer1, setAnswer1] = useState(user?.security_answer_1 ?? "");
   const [answer2, setAnswer2] = useState(user?.security_answer_2 ?? "");
   const [answer3, setAnswer3] = useState(user?.security_answer_3 ?? "");
+  const [showSupplierMenu, setShowSupplierMenu] = useState(user?.show_supplier_menu ?? false);
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +53,7 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
                 security_answer_1: answer1.trim(),
                 security_answer_2: answer2.trim(),
                 security_answer_3: answer3.trim(),
+                show_supplier_menu: showSupplierMenu,
                 ...(password ? { password } : {}),
               }),
           email: email.trim(),
@@ -64,6 +66,7 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
           security_answer_1: answer1.trim(),
           security_answer_2: answer2.trim(),
           security_answer_3: answer3.trim(),
+          show_supplier_menu: showSupplierMenu,
         });
       }
       onSaved();
@@ -142,6 +145,16 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
           </div>
           {!isAdminAccount && (
             <>
+              <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={showSupplierMenu}
+                    onChange={(e) => setShowSupplierMenu(e.target.checked)}
+                  />
+                  사이드바에 "공급자 현황" 메뉴 표시
+                </label>
+              </div>
               <div className="notice-box" style={{ gridColumn: "1 / -1" }}>
                 비밀번호 초기화 시 이메일을 받지 못하는 경우를 대비한 보안 질문입니다. 세 질문
                 모두 답변해주세요.

@@ -20,10 +20,9 @@ function SelfAccountModal({ onClose }: Props) {
 
   const emailValid = isValidEmailFormat(email.trim());
 
-  const canSubmit =
-    email.trim().length > 0 &&
-    emailValid &&
-    (isAdminAccount || name.trim().length > 0);
+  const canSubmit = isAdminAccount
+    ? email.trim().length > 0 && emailValid
+    : name.trim().length > 0;
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -31,8 +30,7 @@ function SelfAccountModal({ onClose }: Props) {
     setError(null);
     try {
       await updateMe({
-        email: email.trim(),
-        ...(isAdminAccount ? {} : { name: name.trim() }),
+        ...(isAdminAccount ? { email: email.trim() } : { name: name.trim() }),
         ...(password ? { password } : {}),
       });
       await refreshUser();
@@ -66,8 +64,9 @@ function SelfAccountModal({ onClose }: Props) {
               type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={!isAdminAccount}
             />
-            {email.trim() && (
+            {isAdminAccount && email.trim() && (
               <p className={emailValid ? "success-text" : "error-text"} style={{ margin: 0 }}>
                 {emailValid ? "올바른 이메일 형식입니다." : "이메일 형식이 올바르지 않습니다."}
               </p>
@@ -75,8 +74,7 @@ function SelfAccountModal({ onClose }: Props) {
           </div>
           {!isAdminAccount && (
             <div className="notice-box" style={{ gridColumn: "1 / -1" }}>
-              Email은 로그인 아이디로 사용됩니다. 변경하면 다음 로그인부터 새 이메일을 사용해야
-              합니다.
+              Email(로그인 아이디) 변경은 관리자에게 문의해주세요.
             </div>
           )}
           <div className="form-field" style={{ gridColumn: "1 / -1" }}>

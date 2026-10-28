@@ -121,6 +121,9 @@ SCHEMA_PATCHES = [
         END IF;
     END $$;
     """,
+    # Per-user visibility toggle for the "공급자 현황" sidebar menu
+    # (non-admin only; admin always sees it regardless of this flag).
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS show_supplier_menu BOOLEAN NOT NULL DEFAULT false",
 ]
 
 _RANDOM_HIRE_YEARS = [str(y) for y in range(2008, 2024)]

@@ -48,6 +48,7 @@ def approve_application(application_id: int, db: Session = Depends(get_db)):
         password=user.password,
         email=user.email,
         is_admin=False,
+        show_supplier_menu=user.show_supplier_menu,
         project_ids=[],
         project_names=[],
         security_answer_1=user.security_answer_1,

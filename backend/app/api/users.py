@@ -20,6 +20,7 @@ def _to_read(user: User, db: Session) -> UserRead:
         password=user.password,
         email=user.email,
         is_admin=user.is_admin,
+        show_supplier_menu=user.show_supplier_menu,
         project_ids=[p.id for p in projects],
         project_names=[p.name for p in projects],
         security_answer_1=user.security_answer_1,
@@ -63,6 +64,7 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
         security_answer_1=payload.security_answer_1.strip(),
         security_answer_2=payload.security_answer_2.strip(),
         security_answer_3=payload.security_answer_3.strip(),
+        show_supplier_menu=payload.show_supplier_menu,
     )
     db.add(user)
     db.commit()
@@ -121,6 +123,9 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
         if not payload.security_answer_3.strip():
             raise HTTPException(status_code=400, detail="질문3 답변을 입력해주세요.")
         user.security_answer_3 = payload.security_answer_3.strip()
+
+    if payload.show_supplier_menu is not None:
+        user.show_supplier_menu = payload.show_supplier_menu
 
     db.commit()
     db.refresh(user)

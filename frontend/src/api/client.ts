@@ -514,6 +514,7 @@ export function createUser(payload: {
   security_answer_1: string;
   security_answer_2: string;
   security_answer_3: string;
+  show_supplier_menu?: boolean;
 }): Promise<User> {
   return request<User>("/users", {
     method: "POST",
@@ -530,6 +531,7 @@ export function updateUser(
     security_answer_1?: string;
     security_answer_2?: string;
     security_answer_3?: string;
+    show_supplier_menu?: boolean;
   },
 ): Promise<User> {
   return request<User>(`/users/${userId}`, {

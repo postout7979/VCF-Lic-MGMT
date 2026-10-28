@@ -35,6 +35,9 @@ class User(Base):
     # non-admin accounts (whose login id is their email instead).
     name: Mapped[str | None] = mapped_column(String, nullable=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Non-admin only: whether the "공급자 현황" sidebar menu is shown for
+    # this account. Admin always sees it regardless of this flag.
+    show_supplier_menu: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     # Opaque bearer token issued at login; cleared on logout. A single active
     # session per user is enough for this internal tool.
     session_token: Mapped[str | None] = mapped_column(String, nullable=True, unique=True, index=True)

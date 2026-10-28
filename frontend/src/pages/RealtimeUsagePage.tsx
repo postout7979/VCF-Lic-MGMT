@@ -100,6 +100,8 @@ function RealtimeUsagePage() {
 
   return (
     <div>
+      <h1 className="page-title">실시간 사용 현황</h1>
+
       <div style={{ marginBottom: 20 }}>
         <div className="form-row" style={{ marginBottom: 0 }}>
           <div className="form-field" style={{ maxWidth: 320 }}>
@@ -132,9 +134,9 @@ function RealtimeUsagePage() {
         </div>
       </div>
 
-      <h1 className="page-title">
+      <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)", margin: "0 0 14px" }}>
         {INFRA_OPTIONS.find((option) => option.value === infraType)?.label}
-      </h1>
+      </h2>
 
       {projects.length === 0 ? (
         <div className="card placeholder-card">프로젝트를 먼저 생성해주세요.</div>

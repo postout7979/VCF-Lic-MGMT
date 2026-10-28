@@ -7,7 +7,7 @@ import SelfAccountModal from "./SelfAccountModal";
 const NAV_ITEMS = [
   { to: "/license-overview", label: "라이센스 종합 현황" },
   { to: "/realtime-usage", label: "실시간 사용 현황" },
-  { to: "/projects", label: "공급자 현황" },
+  { to: "/projects", label: "공급자 현황", supplierOnly: true },
   { to: "/csp-status", label: "Customer Support Portal 현황" },
   { to: "/license-key-match", label: "라이센스 키 매칭 현황" },
 ];
@@ -42,7 +42,9 @@ function Sidebar() {
       </div>
 
       <p className="sidebar-title">VCF License Management</p>
-      {NAV_ITEMS.map((item) => (
+      {NAV_ITEMS.filter(
+        (item) => !item.supplierOnly || user?.is_admin || user?.show_supplier_menu,
+      ).map((item) => (
         <NavLink
           key={item.to}
           to={item.to}

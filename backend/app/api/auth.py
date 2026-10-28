@@ -41,6 +41,7 @@ def _current_user_fields(user: User) -> dict:
         "name": user.name,
         "email": user.email,
         "is_admin": user.is_admin,
+        "show_supplier_menu": user.show_supplier_menu,
         "project_ids": [p.id for p in projects],
         "project_names": [p.name for p in projects],
     }
@@ -92,15 +93,15 @@ def update_me(
             raise HTTPException(status_code=400, detail="비밀번호를 입력해주세요.")
         user.password = payload.password
     if payload.email is not None:
+        if not user.is_admin:
+            raise HTTPException(
+                status_code=400, detail="이메일은 관리자만 변경할 수 있습니다."
+            )
         email = payload.email.strip()
         if not email:
             raise HTTPException(status_code=400, detail="이메일을 입력해주세요.")
         if not is_valid_email_format(email):
             raise HTTPException(status_code=400, detail="이메일 형식이 올바르지 않습니다.")
-        if not user.is_admin:
-            if db.query(User).filter(User.username == email, User.id != user.id).first():
-                raise HTTPException(status_code=409, detail="이미 등록된 이메일입니다.")
-            user.username = email
         user.email = email
     db.commit()
     db.refresh(user)

@@ -57,7 +57,7 @@ button {
 }
 
 .sidebar-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.02em;
   color: #ffffff;
@@ -71,7 +71,7 @@ button {
   color: #aab4c8;
   text-decoration: none;
   font-weight: 500;
-  font-size: 13.5px;
+  font-size: 14.5px;
   border-left: 3px solid transparent;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
@@ -110,7 +110,7 @@ button {
   padding: 0 10px;
   color: #ffffff;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .sidebar-user-name-btn {
@@ -120,7 +120,7 @@ button {
   margin: 0;
   color: #ffffff;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 17px;
   text-align: left;
   cursor: pointer;
   text-decoration: underline;
@@ -139,7 +139,7 @@ button {
   color: #aab4c8;
   padding: 7px 10px;
   margin: 0 10px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
@@ -157,7 +157,7 @@ button {
 }
 
 .page-title {
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 700;
   margin: 0 0 18px;
   color: var(--color-text);
@@ -187,7 +187,7 @@ button {
   padding: 10px 16px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: 14.5px;
   color: var(--color-text-muted);
   transition: color 0.15s ease, border-color 0.15s ease;
 }
@@ -206,7 +206,7 @@ button {
   border-radius: 6px;
   padding: 8px 16px;
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: 14.5px;
   cursor: pointer;
   background: var(--color-primary);
   color: #ffffff;
@@ -244,7 +244,7 @@ button {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 th,
@@ -258,7 +258,7 @@ td {
 th {
   color: var(--color-text-muted);
   font-weight: 600;
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   background: #fafbfc;
@@ -286,7 +286,7 @@ tbody tr.selected-row td {
   align-items: center;
   padding: 2px 9px;
   border-radius: 6px;
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 600;
 }
 
@@ -332,7 +332,7 @@ tbody tr.selected-row td {
   border: 1px solid #bfdbfe;
   border-radius: var(--radius-md);
   color: #1e40af;
-  font-size: 12.5px;
+  font-size: 13.5px;
   padding: 10px 12px;
   margin-top: 10px;
 }
@@ -341,7 +341,7 @@ tbody tr.selected-row td {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--color-text);
   cursor: pointer;
@@ -361,7 +361,7 @@ tbody tr.selected-row td {
 }
 
 .form-field label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text-muted);
 }
@@ -373,7 +373,7 @@ select {
   padding: 10px 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-size: 14px;
+  font-size: 15px;
   background: var(--color-surface);
   color: var(--color-text);
 }
@@ -448,17 +448,17 @@ select:focus {
 
 .text-muted {
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .error-text {
   color: var(--color-accent-red);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .success-text {
   color: var(--color-accent-green);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* search bar */
@@ -493,7 +493,7 @@ select:focus {
   color: var(--color-text);
   border-radius: var(--radius-md);
   padding: 6px 12px;
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
   min-width: 36px;
 }
@@ -517,7 +517,7 @@ select:focus {
 /* vCenter assignment tree */
 
 .vc-tree {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .vc-tree-row {
@@ -547,7 +547,7 @@ select:focus {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--color-text-muted);
   width: 16px;
 }
@@ -576,7 +576,7 @@ select:focus {
 }
 
 .summary-bar-label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-text-muted);
   text-transform: uppercase;
@@ -584,7 +584,7 @@ select:focus {
 }
 
 .summary-bar-value {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--color-text);
 }
@@ -611,7 +611,7 @@ select:focus {
 }
 
 .donut-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--color-text);
   margin-bottom: 14px;
@@ -639,14 +639,14 @@ select:focus {
 }
 
 .donut-center-value {
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 700;
   color: var(--color-text);
   line-height: 1.1;
 }
 
 .donut-center-label {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-text-muted);
   margin-top: 2px;
 }
@@ -663,7 +663,7 @@ select:focus {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 12.5px;
+  font-size: 13.5px;
 }
 
 .donut-legend-dot {
