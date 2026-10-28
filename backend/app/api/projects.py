@@ -89,6 +89,9 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         .scalar()
         or 0
     )
+    user_count = (
+        db.query(func.count(User.id)).filter(User.project_id == project.id).scalar() or 0
+    )
     return ProjectSummary(
         id=project.id,
         name=project.name,
@@ -103,6 +106,7 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         vcf_core_capacity=int(vcf_core_capacity),
         vcf_core_used=int(vcf_core_used),
         csp_license_count=int(csp_license_count),
+        user_count=int(user_count),
         item_count=item_count,
     )
 
