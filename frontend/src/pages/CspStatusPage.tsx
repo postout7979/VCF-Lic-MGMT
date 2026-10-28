@@ -59,15 +59,21 @@ function CspStatusPage() {
         <div className="card placeholder-card">프로젝트를 먼저 생성해주세요.</div>
       ) : (
         <>
-          <div className="stat-banner">
-            <div className="stat-card">
-              <div className="stat-label">Folder 수</div>
-              <div className="stat-value">{folderCount}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">라이센스 항목 수</div>
-              <div className="stat-value">{items.length}</div>
-            </div>
+          <div className="card summary-card">
+            <table className="summary-table">
+              <thead>
+                <tr>
+                  <th>Folder 수</th>
+                  <th>라이센스 항목 수</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{folderCount}</td>
+                  <td>{items.length}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
           {items.length === 0 ? (

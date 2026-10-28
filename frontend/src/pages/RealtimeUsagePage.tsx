@@ -115,27 +115,27 @@ function RealtimeUsagePage() {
         <div className="card placeholder-card">프로젝트를 먼저 생성해주세요.</div>
       ) : (
         <>
-          <div className="stat-banner">
-            <div className="stat-card">
-              <div className="stat-label">vCenter 수</div>
-              <div className="stat-value">{stats.vcenterCount}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">Cluster 수</div>
-              <div className="stat-value">{stats.clusterCount}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">Host 수</div>
-              <div className="stat-value">{stats.hostCount}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">Perpetual 수량</div>
-              <div className="stat-value">{stats.perpetualQuantity.toLocaleString()}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">Term 수량</div>
-              <div className="stat-value">{stats.termQuantity.toLocaleString()}</div>
-            </div>
+          <div className="card summary-card">
+            <table className="summary-table">
+              <thead>
+                <tr>
+                  <th>vCenter 수</th>
+                  <th>Cluster 수</th>
+                  <th>Host 수</th>
+                  <th>Perpetual 수량</th>
+                  <th>Term 수량</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{stats.vcenterCount}</td>
+                  <td>{stats.clusterCount}</td>
+                  <td>{stats.hostCount}</td>
+                  <td>{stats.perpetualQuantity.toLocaleString()}</td>
+                  <td>{stats.termQuantity.toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
           {items.length === 0 ? (
@@ -199,23 +199,25 @@ function RealtimeUsagePage() {
             <p className="text-muted">불러오는 중...</p>
           ) : (
             <>
-              <div className="stat-banner">
-                <div className="stat-card">
-                  <div className="stat-label">VCF 연결 수</div>
-                  <div className="stat-value">{vcfStats.connectionCount}</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-label">라이센스 항목 수</div>
-                  <div className="stat-value">{vcfStats.licenseCount}</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-label">할당 코어 합계</div>
-                  <div className="stat-value">{vcfStats.coreCapacity.toLocaleString()}</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-label">사용 중 코어 합계</div>
-                  <div className="stat-value">{vcfStats.coreUsed.toLocaleString()}</div>
-                </div>
+              <div className="card summary-card">
+                <table className="summary-table">
+                  <thead>
+                    <tr>
+                      <th>VCF 연결 수</th>
+                      <th>라이센스 항목 수</th>
+                      <th>할당 코어 합계</th>
+                      <th>사용 중 코어 합계</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>{vcfStats.connectionCount}</td>
+                      <td>{vcfStats.licenseCount}</td>
+                      <td>{vcfStats.coreCapacity.toLocaleString()}</td>
+                      <td>{vcfStats.coreUsed.toLocaleString()}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
 
               {vcfItems.length === 0 ? (
