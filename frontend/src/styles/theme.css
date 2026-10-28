@@ -120,7 +120,7 @@ button {
   margin: 0;
   color: #ffffff;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 16px;
   text-align: left;
   cursor: pointer;
   text-decoration: underline;
@@ -130,12 +130,6 @@ button {
 
 .sidebar-user-name-btn:hover {
   color: var(--color-sidebar-active);
-}
-
-.sidebar-user-project {
-  color: #aab4c8;
-  font-weight: 500;
-  font-size: 11.5px;
 }
 
 .sidebar-logout {

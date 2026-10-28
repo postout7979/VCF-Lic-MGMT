@@ -16,7 +16,11 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
   const isEdit = user !== null;
   const isAdminAccount = user?.is_admin ?? false;
   const [name, setName] = useState(user?.name ?? "");
-  const [password, setPassword] = useState(user?.password ?? generatePassword());
+  const [password, setPassword] = useState(() => {
+    if (!isEdit) return generatePassword();
+    if (isAdminAccount) return user?.password ?? "";
+    return "";
+  });
   const [email, setEmail] = useState(user?.email ?? "");
   const [answer1, setAnswer1] = useState(user?.security_answer_1 ?? "");
   const [answer2, setAnswer2] = useState(user?.security_answer_2 ?? "");
@@ -26,9 +30,10 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const emailValid = isValidEmailFormat(email.trim());
+  const passwordRequired = !isEdit || isAdminAccount;
 
   const canSubmit =
-    password.trim() &&
+    (!passwordRequired || password.trim()) &&
     email.trim() &&
     emailValid &&
     (isAdminAccount || (name.trim() && answer1.trim() && answer2.trim() && answer3.trim()));
@@ -41,14 +46,14 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
       if (isEdit && user) {
         await updateUser(user.id, {
           ...(isAdminAccount
-            ? {}
+            ? { password }
             : {
                 name: name.trim(),
                 security_answer_1: answer1.trim(),
                 security_answer_2: answer2.trim(),
                 security_answer_3: answer3.trim(),
+                ...(password ? { password } : {}),
               }),
-          password,
           email: email.trim(),
         });
       } else {
@@ -100,6 +105,7 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
             <div className="form-row" style={{ marginBottom: 0 }}>
               <input
                 type={showPassword ? "text" : "password"}
+                placeholder={passwordRequired ? undefined : "변경하지 않으려면 비워두세요"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 style={{ flex: 1, fontFamily: "monospace" }}

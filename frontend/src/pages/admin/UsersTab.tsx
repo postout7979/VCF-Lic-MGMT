@@ -9,7 +9,6 @@ function UsersTab() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [revealed, setRevealed] = useState<Set<number>>(new Set());
   const [formTarget, setFormTarget] = useState<User | "new" | null>(null);
   const [assignTarget, setAssignTarget] = useState<User | null>(null);
 
@@ -23,15 +22,6 @@ function UsersTab() {
   useEffect(() => {
     loadUsers();
   }, []);
-
-  function toggleReveal(id: number) {
-    setRevealed((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
 
   async function handleDelete(user: User) {
     if (!window.confirm(`${user.username} 사용자를 삭제할까요?`)) return;
@@ -105,7 +95,6 @@ function UsersTab() {
                 <tr>
                   <th>Username</th>
                   <th>이름</th>
-                  <th>Password</th>
                   <th>Email</th>
                   <th>프로젝트</th>
                   <th>생성일</th>
@@ -124,18 +113,6 @@ function UsersTab() {
                       )}
                     </td>
                     <td>{user.name ?? "-"}</td>
-                    <td>
-                      <span style={{ fontFamily: "monospace", marginRight: 8 }}>
-                        {revealed.has(user.id) ? user.password : "•".repeat(10)}
-                      </span>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: "3px 10px", fontSize: 12 }}
-                        onClick={() => toggleReveal(user.id)}
-                      >
-                        {revealed.has(user.id) ? "숨기기" : "보기"}
-                      </button>
-                    </td>
                     <td>{user.email}</td>
                     <td>
                       {user.is_admin
