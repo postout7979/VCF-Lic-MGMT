@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { fetchProjectDetail, fetchProjects } from "../../api/client";
 import ListControls from "../../components/ListControls";
@@ -15,7 +15,14 @@ function ProjectsListView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const licenseItems = detail?.license_items ?? [];
+  const licenseItems = useMemo(() => {
+    const items = detail?.license_items ?? [];
+    return [...items].sort((a, b) =>
+      (a.parent_customer ?? "").localeCompare(b.parent_customer ?? "") ||
+      (a.customer_name ?? "").localeCompare(b.customer_name ?? "") ||
+      (a.enduser_account_name ?? "").localeCompare(b.enduser_account_name ?? ""),
+    );
+  }, [detail]);
   const list = useListControls(licenseItems, (item, query) =>
     [
       item.serial_number,
@@ -30,7 +37,9 @@ function ProjectsListView() {
   );
 
   useEffect(() => {
-    fetchProjects().then(setProjects);
+    fetchProjects().then((data) =>
+      setProjects([...data].sort((a, b) => a.name.localeCompare(b.name))),
+    );
   }, []);
 
   useEffect(() => {

@@ -56,7 +56,7 @@ function LegacyInfraTab() {
     <div>
       <div className="form-row" style={{ justifyContent: "space-between" }}>
         <p className="text-muted" style={{ margin: 0 }}>
-          VCF Operations와 연결된 vCenter 어답터 목록입니다.
+          vCenter 어답터 목록입니다.
         </p>
         <button className="btn" onClick={() => setShowConnectModal(true)}>
           vCenter 어답터 연결

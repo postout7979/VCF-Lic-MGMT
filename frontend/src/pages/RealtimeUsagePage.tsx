@@ -25,7 +25,9 @@ function RealtimeUsagePage() {
   const [vcfLoading, setVcfLoading] = useState(false);
 
   useEffect(() => {
-    fetchProjects().then(setProjects);
+    fetchProjects().then((data) =>
+      setProjects([...data].sort((a, b) => a.name.localeCompare(b.name))),
+    );
   }, []);
 
   useEffect(() => {
