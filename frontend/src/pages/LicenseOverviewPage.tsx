@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { fetchProjects } from "../api/client";
+import DonutChart from "../components/DonutChart";
 import ListControls from "../components/ListControls";
 import Pagination from "../components/Pagination";
+import StatTile from "../components/StatTile";
 import { useListControls } from "../hooks/useListControls";
 import type { ProjectSummary } from "../types";
+
+const COLOR_PRIMARY = "#2563eb";
+const COLOR_ORANGE = "#eb6834";
+const COLOR_TRACK = "#e1e0d9";
 
 function LicenseOverviewPage() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
@@ -47,6 +53,10 @@ function LicenseOverviewPage() {
     project.name.toLowerCase().includes(query),
   );
 
+  const vcfRemaining = Math.max(totals.vcfCapacity - totals.vcfUsed, 0);
+  const vcfUsageRate =
+    totals.vcfCapacity > 0 ? Math.round((totals.vcfUsed / totals.vcfCapacity) * 100) : 0;
+
   return (
     <div>
       <h1 className="page-title">라이센스 종합 현황</h1>
@@ -59,36 +69,40 @@ function LicenseOverviewPage() {
         </div>
       ) : (
         <>
-          <div className="card summary-card">
-            <div style={{ overflowX: "auto" }}>
-              <table className="summary-table">
-                <thead>
-                  <tr>
-                    <th>총 프로젝트 수</th>
-                    <th>총 사용자 수</th>
-                    <th>공급자 Perpetual 합계</th>
-                    <th>공급자 Subscription 합계</th>
-                    <th>vCenter Perpetual 수량</th>
-                    <th>vCenter Term 수량</th>
-                    <th>VCF 할당 코어 합계</th>
-                    <th>VCF 사용 코어 합계</th>
-                    <th>CSP 라이센스 항목 수</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>{projects.length}</td>
-                    <td>{totals.userCount}</td>
-                    <td>{totals.perpetual.toLocaleString()}</td>
-                    <td>{totals.subscription.toLocaleString()}</td>
-                    <td>{totals.vcenterPerpetual.toLocaleString()}</td>
-                    <td>{totals.vcenterTerm.toLocaleString()}</td>
-                    <td>{totals.vcfCapacity.toLocaleString()}</td>
-                    <td>{totals.vcfUsed.toLocaleString()}</td>
-                    <td>{totals.cspCount.toLocaleString()}</td>
-                  </tr>
-                </tbody>
-              </table>
+          <div className="dashboard-grid">
+            <div className="stat-tile-row">
+              <StatTile label="총 프로젝트 수" value={projects.length} />
+              <StatTile label="총 사용자 수" value={totals.userCount} />
+              <StatTile label="CSP 라이센스 항목 수" value={totals.cspCount} accent={COLOR_ORANGE} />
+            </div>
+            <div className="donut-grid">
+              <DonutChart
+                title="공급자 라이센스 구성"
+                segments={[
+                  { label: "Perpetual", value: totals.perpetual, color: COLOR_PRIMARY },
+                  { label: "Subscription", value: totals.subscription, color: COLOR_ORANGE },
+                ]}
+                centerValue={(totals.perpetual + totals.subscription).toLocaleString()}
+                centerLabel="합계 수량"
+              />
+              <DonutChart
+                title="vCenter 라이센스 구성"
+                segments={[
+                  { label: "Perpetual", value: totals.vcenterPerpetual, color: COLOR_PRIMARY },
+                  { label: "Term", value: totals.vcenterTerm, color: COLOR_ORANGE },
+                ]}
+                centerValue={(totals.vcenterPerpetual + totals.vcenterTerm).toLocaleString()}
+                centerLabel="합계 수량"
+              />
+              <DonutChart
+                title="VCF 코어 사용 현황"
+                segments={[
+                  { label: "사용 코어", value: totals.vcfUsed, color: COLOR_PRIMARY },
+                  { label: "여유 코어", value: vcfRemaining, color: COLOR_TRACK },
+                ]}
+                centerValue={`${vcfUsageRate}%`}
+                centerLabel={`${totals.vcfUsed.toLocaleString()} / ${totals.vcfCapacity.toLocaleString()}`}
+              />
             </div>
           </div>
 
