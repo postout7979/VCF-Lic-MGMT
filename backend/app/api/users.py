@@ -20,6 +20,9 @@ def _to_read(user: User, db: Session) -> UserRead:
         is_admin=user.is_admin,
         project_ids=[p.id for p in projects],
         project_names=[p.name for p in projects],
+        security_answer_1=user.security_answer_1,
+        security_answer_2=user.security_answer_2,
+        security_answer_3=user.security_answer_3,
         created_at=user.created_at,
     )
 
@@ -38,6 +41,12 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Password를 입력해주세요.")
     if not payload.email.strip():
         raise HTTPException(status_code=400, detail="Email을 입력해주세요.")
+    if (
+        not payload.security_answer_1.strip()
+        or not payload.security_answer_2.strip()
+        or not payload.security_answer_3.strip()
+    ):
+        raise HTTPException(status_code=400, detail="비밀번호 초기화 질문 3개에 모두 답변해주세요.")
     if db.query(User).filter(User.username == payload.username.strip()).first():
         raise HTTPException(status_code=409, detail="같은 Username이 이미 존재합니다.")
 
@@ -45,6 +54,9 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
         username=payload.username.strip(),
         password=payload.password,
         email=payload.email.strip(),
+        security_answer_1=payload.security_answer_1.strip(),
+        security_answer_2=payload.security_answer_2.strip(),
+        security_answer_3=payload.security_answer_3.strip(),
     )
     db.add(user)
     db.commit()
@@ -84,6 +96,21 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
         if not email:
             raise HTTPException(status_code=400, detail="Email을 입력해주세요.")
         user.email = email
+
+    if payload.security_answer_1 is not None:
+        if not payload.security_answer_1.strip():
+            raise HTTPException(status_code=400, detail="질문1 답변을 입력해주세요.")
+        user.security_answer_1 = payload.security_answer_1.strip()
+
+    if payload.security_answer_2 is not None:
+        if not payload.security_answer_2.strip():
+            raise HTTPException(status_code=400, detail="질문2 답변을 입력해주세요.")
+        user.security_answer_2 = payload.security_answer_2.strip()
+
+    if payload.security_answer_3 is not None:
+        if not payload.security_answer_3.strip():
+            raise HTTPException(status_code=400, detail="질문3 답변을 입력해주세요.")
+        user.security_answer_3 = payload.security_answer_3.strip()
 
     db.commit()
     db.refresh(user)

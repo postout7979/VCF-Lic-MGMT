@@ -6,6 +6,7 @@ import type {
   LicenseItemPage,
   ProjectDetail,
   ProjectSummary,
+  SmtpSettings,
   UploadBatch,
   UploadResult,
   User,
@@ -65,6 +66,86 @@ export function logout(): Promise<void> {
 
 export function fetchMe(): Promise<CurrentUser> {
   return request<CurrentUser>("/auth/me");
+}
+
+export function generateRecoveryKey(): Promise<{ recovery_key: string }> {
+  return request<{ recovery_key: string }>("/auth/admin/recovery-key", { method: "POST" });
+}
+
+export function forgotPasswordInit(
+  username: string,
+): Promise<{ is_admin: boolean; has_email: boolean; security_questions: string[] }> {
+  return request("/auth/forgot-password/init", {
+    method: "POST",
+    body: JSON.stringify({ username }),
+  });
+}
+
+export function adminResetPassword(payload: {
+  username: string;
+  recovery_key: string;
+  new_password: string;
+}): Promise<void> {
+  return request<void>("/auth/forgot-password/admin-reset", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function requestPasswordOtp(username: string): Promise<void> {
+  return request<void>("/auth/forgot-password/request-otp", {
+    method: "POST",
+    body: JSON.stringify({ username }),
+  });
+}
+
+export function verifyPasswordOtp(payload: {
+  username: string;
+  code: string;
+  new_password: string;
+}): Promise<void> {
+  return request<void>("/auth/forgot-password/verify-otp", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function verifySecurityAnswers(payload: {
+  username: string;
+  answer_1: string;
+  answer_2: string;
+  answer_3: string;
+  new_password: string;
+}): Promise<void> {
+  return request<void>("/auth/forgot-password/verify-security-answers", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchSmtpSettings(): Promise<SmtpSettings> {
+  return request<SmtpSettings>("/smtp-settings");
+}
+
+export function updateSmtpSettings(payload: {
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  use_tls: boolean;
+  from_address: string;
+}): Promise<SmtpSettings> {
+  return request<SmtpSettings>("/smtp-settings", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function sendTestEmail(toAddress: string): Promise<void> {
+  return request<void>("/smtp-settings/test", {
+    method: "POST",
+    body: JSON.stringify({ to_address: toAddress }),
+  });
 }
 
 export function uploadSupplierData(file: File, uploadName: string): Promise<UploadResult> {
@@ -377,6 +458,9 @@ export function createUser(payload: {
   username: string;
   password: string;
   email: string;
+  security_answer_1: string;
+  security_answer_2: string;
+  security_answer_3: string;
 }): Promise<User> {
   return request<User>("/users", {
     method: "POST",
@@ -386,7 +470,14 @@ export function createUser(payload: {
 
 export function updateUser(
   userId: number,
-  payload: { username?: string; password?: string; email?: string },
+  payload: {
+    username?: string;
+    password?: string;
+    email?: string;
+    security_answer_1?: string;
+    security_answer_2?: string;
+    security_answer_3?: string;
+  },
 ): Promise<User> {
   return request<User>(`/users/${userId}`, {
     method: "PATCH",

@@ -32,6 +32,24 @@ class User(Base):
     # Opaque bearer token issued at login; cleared on logout. A single active
     # session per user is enough for this internal tool.
     session_token: Mapped[str | None] = mapped_column(String, nullable=True, unique=True, index=True)
+
+    # Password-reset fallback answers (set at account creation/edit), used
+    # when email delivery isn't available. Not applicable to the admin
+    # account, which resets via a downloadable recovery key instead.
+    security_answer_1: Mapped[str | None] = mapped_column(String, nullable=True)
+    security_answer_2: Mapped[str | None] = mapped_column(String, nullable=True)
+    security_answer_3: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    # Admin-only: sha256 of a 128-bit recovery key, downloaded once from
+    # Settings > 사용자 and used on the login page's password-reset flow.
+    # Cleared after use (single-use) so a leaked key can't be reused.
+    recovery_key_hash: Mapped[str | None] = mapped_column(String, nullable=True)
+    recovery_key_created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    # Non-admin: a short-lived one-time code emailed for password reset.
+    reset_otp_code: Mapped[str | None] = mapped_column(String, nullable=True)
+    reset_otp_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow

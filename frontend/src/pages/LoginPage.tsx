@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
 
 function LoginPage() {
   const { user, loading, login } = useAuth();
@@ -11,6 +12,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   if (loading) {
     return <p className="text-muted" style={{ padding: 24 }}>불러오는 중...</p>;
@@ -76,7 +78,18 @@ function LoginPage() {
         >
           {submitting ? "로그인 중..." : "로그인"}
         </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ width: "100%", marginTop: 10 }}
+          onClick={() => setShowForgotPassword(true)}
+        >
+          비밀번호를 잊으셨나요?
+        </button>
       </form>
+      {showForgotPassword && (
+        <ForgotPasswordModal onClose={() => setShowForgotPassword(false)} />
+      )}
     </div>
   );
 }

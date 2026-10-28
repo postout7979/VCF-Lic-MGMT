@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { createUser, updateUser } from "../api/client";
 import { generatePassword } from "../utils/password";
+import { SECURITY_QUESTIONS } from "../types";
 import type { User } from "../types";
 
 interface Props {
@@ -16,11 +17,18 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
   const [username, setUsername] = useState(user?.username ?? "");
   const [password, setPassword] = useState(user?.password ?? generatePassword());
   const [email, setEmail] = useState(user?.email ?? "");
+  const [answer1, setAnswer1] = useState(user?.security_answer_1 ?? "");
+  const [answer2, setAnswer2] = useState(user?.security_answer_2 ?? "");
+  const [answer3, setAnswer3] = useState(user?.security_answer_3 ?? "");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = username.trim() && password.trim() && email.trim();
+  const canSubmit =
+    username.trim() &&
+    password.trim() &&
+    email.trim() &&
+    (isAdminAccount || (answer1.trim() && answer2.trim() && answer3.trim()));
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -29,12 +37,26 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
     try {
       if (isEdit && user) {
         await updateUser(user.id, {
-          ...(isAdminAccount ? {} : { username: username.trim() }),
+          ...(isAdminAccount
+            ? {}
+            : {
+                username: username.trim(),
+                security_answer_1: answer1.trim(),
+                security_answer_2: answer2.trim(),
+                security_answer_3: answer3.trim(),
+              }),
           password,
           email: email.trim(),
         });
       } else {
-        await createUser({ username: username.trim(), password, email: email.trim() });
+        await createUser({
+          username: username.trim(),
+          password,
+          email: email.trim(),
+          security_answer_1: answer1.trim(),
+          security_answer_2: answer2.trim(),
+          security_answer_3: answer3.trim(),
+        });
       }
       onSaved();
       onClose();
@@ -98,6 +120,38 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
+          {!isAdminAccount && (
+            <>
+              <div className="notice-box" style={{ gridColumn: "1 / -1" }}>
+                비밀번호 초기화 시 이메일을 받지 못하는 경우를 대비한 보안 질문입니다. 세 질문
+                모두 답변해주세요.
+              </div>
+              <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+                <label>질문1. {SECURITY_QUESTIONS[0]}</label>
+                <input
+                  type="text"
+                  value={answer1}
+                  onChange={(e) => setAnswer1(e.target.value)}
+                />
+              </div>
+              <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+                <label>질문2. {SECURITY_QUESTIONS[1]}</label>
+                <input
+                  type="text"
+                  value={answer2}
+                  onChange={(e) => setAnswer2(e.target.value)}
+                />
+              </div>
+              <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+                <label>질문3. {SECURITY_QUESTIONS[2]}</label>
+                <input
+                  type="text"
+                  value={answer3}
+                  onChange={(e) => setAnswer3(e.target.value)}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {error && <p className="error-text">{error}</p>}

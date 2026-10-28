@@ -147,7 +147,26 @@ export interface User {
   is_admin: boolean;
   project_ids: number[];
   project_names: string[];
+  security_answer_1: string | null;
+  security_answer_2: string | null;
+  security_answer_3: string | null;
   created_at: string;
+}
+
+export const SECURITY_QUESTIONS: string[] = [
+  "입사년도는 언제입니까?",
+  "첫 직장명은 무엇입니까?",
+  "태어난 도시는 어디입니까?",
+];
+
+export interface SmtpSettings {
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  use_tls: boolean;
+  from_address: string;
+  updated_at: string;
 }
 
 export interface CurrentUser {

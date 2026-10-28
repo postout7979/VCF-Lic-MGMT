@@ -7,12 +7,18 @@ class UserCreate(BaseModel):
     username: str
     password: str
     email: str
+    security_answer_1: str
+    security_answer_2: str
+    security_answer_3: str
 
 
 class UserUpdate(BaseModel):
     username: str | None = None
     password: str | None = None
     email: str | None = None
+    security_answer_1: str | None = None
+    security_answer_2: str | None = None
+    security_answer_3: str | None = None
 
 
 class UserRead(BaseModel):
@@ -25,6 +31,9 @@ class UserRead(BaseModel):
     is_admin: bool = False
     project_ids: list[int] = []
     project_names: list[str] = []
+    security_answer_1: str | None = None
+    security_answer_2: str | None = None
+    security_answer_3: str | None = None
     created_at: datetime
 
 

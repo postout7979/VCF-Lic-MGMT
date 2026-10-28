@@ -1,4 +1,5 @@
 import asyncio
+import random
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +10,7 @@ from app.api.auth import router as auth_router
 from app.api.csp_data import router as csp_data_router
 from app.api.legacy_infra import router as legacy_infra_router
 from app.api.projects import router as projects_router
+from app.api.smtp_settings import router as smtp_settings_router
 from app.api.supplier_data import router as supplier_data_router
 from app.api.users import router as users_router
 from app.api.vcf_ops import router as vcf_ops_router
@@ -19,6 +21,7 @@ from app.models import (  # noqa: F401  (register models with Base)
     CspLicenseItem,
     LicenseItem,
     Project,
+    SmtpSettings,
     User,
     VCenterConnection,
     VCenterInventoryItem,
@@ -82,7 +85,19 @@ SCHEMA_PATCHES = [
         END IF;
     END $$;
     """,
+    # SMTP relay + password-reset (recovery key / OTP / security questions).
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS security_answer_1 VARCHAR",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS security_answer_2 VARCHAR",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS security_answer_3 VARCHAR",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_key_hash VARCHAR",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_key_created_at TIMESTAMP",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_code VARCHAR",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expires_at TIMESTAMP",
 ]
+
+_RANDOM_HIRE_YEARS = [str(y) for y in range(2008, 2024)]
+_RANDOM_FIRST_EMPLOYERS = ["대한소프트", "한빛테크", "그린시스템즈", "유니콤정보", "서울데이타", "미래넷웍스"]
+_RANDOM_BIRTH_CITIES = ["서울", "부산", "대구", "인천", "광주", "대전", "울산", "수원"]
 
 app = FastAPI(title="VCF License Management")
 
@@ -100,6 +115,7 @@ app.include_router(legacy_infra_router, prefix=settings.api_v1_prefix)
 app.include_router(vcf_ops_router, prefix=settings.api_v1_prefix)
 app.include_router(csp_data_router, prefix=settings.api_v1_prefix)
 app.include_router(users_router, prefix=settings.api_v1_prefix)
+app.include_router(smtp_settings_router, prefix=settings.api_v1_prefix)
 
 
 def _seed_admin_user(db: Session) -> None:
@@ -108,6 +124,34 @@ def _seed_admin_user(db: Session) -> None:
     if db.query(User).filter(User.username == "admin").first() is not None:
         return
     db.add(User(username="admin", password="admin", email="admin@local", is_admin=True))
+    db.commit()
+
+
+def _backfill_security_answers(db: Session) -> None:
+    """Existing non-admin users predate the security-question fields;
+    fill them with plausible random answers so the password-reset
+    fallback flow works without requiring every user to re-register them."""
+    from app.models.user import User
+
+    users = (
+        db.query(User)
+        .filter(User.is_admin.is_(False))
+        .filter(
+            (User.security_answer_1.is_(None))
+            | (User.security_answer_2.is_(None))
+            | (User.security_answer_3.is_(None))
+        )
+        .all()
+    )
+    if not users:
+        return
+    for user in users:
+        if user.security_answer_1 is None:
+            user.security_answer_1 = random.choice(_RANDOM_HIRE_YEARS)
+        if user.security_answer_2 is None:
+            user.security_answer_2 = random.choice(_RANDOM_FIRST_EMPLOYERS)
+        if user.security_answer_3 is None:
+            user.security_answer_3 = random.choice(_RANDOM_BIRTH_CITIES)
     db.commit()
 
 
@@ -121,6 +165,7 @@ def on_startup():
     db = SessionLocal()
     try:
         _seed_admin_user(db)
+        _backfill_security_answers(db)
     finally:
         db.close()
 

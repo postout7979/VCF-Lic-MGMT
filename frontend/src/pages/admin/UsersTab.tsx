@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { deleteUser, fetchUsers } from "../../api/client";
+import { deleteUser, fetchUsers, generateRecoveryKey } from "../../api/client";
 import UserAssignProjectModal from "../../components/UserAssignProjectModal";
 import UserFormModal from "../../components/UserFormModal";
 import type { User } from "../../types";
@@ -43,6 +43,28 @@ function UsersTab() {
     }
   }
 
+  async function handleGenerateRecoveryKey() {
+    if (
+      !window.confirm(
+        "새 복구 키를 생성하면 이전 키는 즉시 무효화됩니다. 생성된 키는 다시 조회할 수 없으니 안전한 곳에 보관하세요. 계속할까요?",
+      )
+    ) {
+      return;
+    }
+    try {
+      const { recovery_key } = await generateRecoveryKey();
+      const blob = new Blob([recovery_key], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "vcf-lic-mgmt-admin-recovery-key.txt";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "복구 키 생성에 실패했습니다.");
+    }
+  }
+
   return (
     <div>
       <div className="card" style={{ marginBottom: 20 }}>
@@ -53,6 +75,18 @@ function UsersTab() {
           </p>
           <button className="btn" onClick={() => setFormTarget("new")}>
             사용자 추가
+          </button>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="form-row" style={{ marginBottom: 0, justifyContent: "space-between" }}>
+          <p className="text-muted" style={{ margin: 0 }}>
+            admin 계정 비밀번호를 잊었을 때 로그인 페이지에서 초기화하는 데 쓰이는 복구 키입니다.
+            생성 시 이전 키는 즉시 무효화됩니다.
+          </p>
+          <button className="btn btn-secondary" onClick={handleGenerateRecoveryKey}>
+            복구 키 생성 및 다운로드
           </button>
         </div>
       </div>
