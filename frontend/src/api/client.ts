@@ -1,6 +1,7 @@
 import type {
   CspLicenseItem,
   CspLicenseItemPage,
+  CurrentUser,
   LicenseItem,
   LicenseItemPage,
   ProjectDetail,
@@ -16,14 +17,31 @@ import type {
 } from "../types";
 
 const BASE = "/api/v1";
+const TOKEN_KEY = "vcf_lic_mgmt_token";
+
+export function getAuthToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setAuthToken(token: string | null): void {
+  if (token) localStorage.setItem(TOKEN_KEY, token);
+  else localStorage.removeItem(TOKEN_KEY);
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: options?.body && !(options.body instanceof FormData)
+  const token = getAuthToken();
+  const headers: Record<string, string> = {
+    ...(options?.body && !(options.body instanceof FormData)
       ? { "Content-Type": "application/json" }
-      : undefined,
-    ...options,
-  });
+      : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+  const res = await fetch(`${BASE}${path}`, { ...options, headers });
+  if (res.status === 401) {
+    setAuthToken(null);
+    window.dispatchEvent(new Event("auth:unauthorized"));
+    throw new Error("로그인이 필요합니다.");
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     throw new Error(body?.detail ?? `요청에 실패했습니다 (${res.status})`);
@@ -32,6 +50,21 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     return undefined as T;
   }
   return res.json() as Promise<T>;
+}
+
+export function login(username: string, password: string): Promise<CurrentUser & { token: string }> {
+  return request<CurrentUser & { token: string }>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export function logout(): Promise<void> {
+  return request<void>("/auth/logout", { method: "POST" });
+}
+
+export function fetchMe(): Promise<CurrentUser> {
+  return request<CurrentUser>("/auth/me");
 }
 
 export function uploadSupplierData(file: File, uploadName: string): Promise<UploadResult> {
@@ -136,6 +169,7 @@ export function createVCenterConnection(payload: {
   password: string;
   version_hint: VCenterVersionHint;
   tls_skip: boolean;
+  sync_interval_minutes: number;
 }): Promise<VCenterConnection> {
   return request<VCenterConnection>("/legacy-infra/vcenter-connections", {
     method: "POST",
@@ -147,6 +181,16 @@ export function syncVCenterConnection(connectionId: number): Promise<VCenterConn
   return request<VCenterConnection>(`/legacy-infra/vcenter-connections/${connectionId}/sync`, {
     method: "POST",
   });
+}
+
+export function updateVCenterSyncInterval(
+  connectionId: number,
+  minutes: number,
+): Promise<VCenterConnection> {
+  return request<VCenterConnection>(
+    `/legacy-infra/vcenter-connections/${connectionId}/sync-interval`,
+    { method: "PATCH", body: JSON.stringify({ minutes }) },
+  );
 }
 
 export function deleteVCenterConnection(connectionId: number): Promise<void> {
@@ -195,6 +239,7 @@ export function createVcfOpsConnection(payload: {
   username: string;
   password: string;
   tls_skip: boolean;
+  sync_interval_minutes: number;
 }): Promise<VcfOpsConnection> {
   return request<VcfOpsConnection>("/vcf-ops/connections", {
     method: "POST",
@@ -205,6 +250,16 @@ export function createVcfOpsConnection(payload: {
 export function syncVcfOpsConnection(connectionId: number): Promise<VcfOpsConnection> {
   return request<VcfOpsConnection>(`/vcf-ops/connections/${connectionId}/sync`, {
     method: "POST",
+  });
+}
+
+export function updateVcfOpsSyncInterval(
+  connectionId: number,
+  minutes: number,
+): Promise<VcfOpsConnection> {
+  return request<VcfOpsConnection>(`/vcf-ops/connections/${connectionId}/sync-interval`, {
+    method: "PATCH",
+    body: JSON.stringify({ minutes }),
   });
 }
 

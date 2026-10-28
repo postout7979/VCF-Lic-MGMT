@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.auth import get_current_user, require_admin
 from app.core.database import get_db
 from app.models.csp_data import CspLicenseItem
 from app.models.license_item import LicenseItem
@@ -166,13 +167,20 @@ def _reconcile_assignment(db: Session, model, project_id: int, desired_ids: set[
 
 
 @router.get("", response_model=list[ProjectSummary])
-def list_projects(db: Session = Depends(get_db)):
-    projects = db.query(Project).order_by(Project.created_at.desc()).all()
+def list_projects(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    query = db.query(Project)
+    if not current_user.is_admin:
+        if current_user.project_id is None:
+            return []
+        query = query.filter(Project.id == current_user.project_id)
+    projects = query.order_by(Project.created_at.desc()).all()
     return [_to_summary(db, project) for project in projects]
 
 
 @router.post("", response_model=ProjectSummary, status_code=201)
-def create_project(payload: ProjectCreate, db: Session = Depends(get_db)):
+def create_project(
+    payload: ProjectCreate, db: Session = Depends(get_db), _: User = Depends(require_admin)
+):
     if db.query(Project).filter(Project.name == payload.name).first():
         raise HTTPException(status_code=409, detail="같은 이름의 프로젝트가 이미 존재합니다.")
     project = Project(name=payload.name, description=payload.description)
@@ -183,7 +191,9 @@ def create_project(payload: ProjectCreate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{project_id}", status_code=204)
-def delete_project(project_id: int, db: Session = Depends(get_db)):
+def delete_project(
+    project_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)
+):
     project = db.get(Project, project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
@@ -208,10 +218,16 @@ def delete_project(project_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{project_id}", response_model=ProjectDetail)
-def get_project(project_id: int, db: Session = Depends(get_db)):
+def get_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     project = db.get(Project, project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+    if not current_user.is_admin and project_id != current_user.project_id:
+        raise HTTPException(status_code=403, detail="이 프로젝트에 접근할 권한이 없습니다.")
     summary = _to_summary(db, project)
     items = (
         db.query(LicenseItem)
@@ -223,18 +239,26 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{project_id}/assign", response_model=ProjectDetail)
-def assign_items(project_id: int, payload: AssignItemsRequest, db: Session = Depends(get_db)):
+def assign_items(
+    project_id: int,
+    payload: AssignItemsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
     project = db.get(Project, project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
 
     _reconcile_assignment(db, LicenseItem, project_id, set(payload.item_ids))
-    return get_project(project_id, db)
+    return get_project(project_id, db, current_user)
 
 
 @router.post("/{project_id}/assign-vcenter", response_model=list[int])
 def assign_vcenter_items(
-    project_id: int, payload: AssignItemsRequest, db: Session = Depends(get_db)
+    project_id: int,
+    payload: AssignItemsRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     project = db.get(Project, project_id)
     if project is None:
@@ -252,7 +276,10 @@ def assign_vcenter_items(
 
 @router.post("/{project_id}/assign-vcf-ops", response_model=list[int])
 def assign_vcf_ops_items(
-    project_id: int, payload: AssignItemsRequest, db: Session = Depends(get_db)
+    project_id: int,
+    payload: AssignItemsRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     project = db.get(Project, project_id)
     if project is None:
@@ -269,7 +296,12 @@ def assign_vcf_ops_items(
 
 
 @router.post("/{project_id}/assign-csp", response_model=list[int])
-def assign_csp_items(project_id: int, payload: AssignItemsRequest, db: Session = Depends(get_db)):
+def assign_csp_items(
+    project_id: int,
+    payload: AssignItemsRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
     project = db.get(Project, project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")

@@ -13,10 +13,12 @@ function ConnectVcfOpsModal({ onClose, onConnected }: Props) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [tlsSkip, setTlsSkip] = useState(true);
+  const [syncIntervalMinutes, setSyncIntervalMinutes] = useState(60);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = name.trim() && host.trim() && username.trim() && password.trim();
+  const canSubmit =
+    name.trim() && host.trim() && username.trim() && password.trim() && syncIntervalMinutes >= 1;
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -29,6 +31,7 @@ function ConnectVcfOpsModal({ onClose, onConnected }: Props) {
         username: username.trim(),
         password,
         tls_skip: tlsSkip,
+        sync_interval_minutes: syncIntervalMinutes,
       });
       onConnected();
       onClose();
@@ -85,6 +88,15 @@ function ConnectVcfOpsModal({ onClose, onConnected }: Props) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          <div className="form-field">
+            <label>동기화 주기 (분)</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={syncIntervalMinutes}
+              onChange={(e) => setSyncIntervalMinutes(Number(e.target.value.replace(/\D/g, "")) || 0)}
             />
           </div>
           <div className="form-field" style={{ gridColumn: "1 / -1" }}>

@@ -3,12 +3,15 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.auth import get_current_user, require_admin
 from app.core.database import get_db
+from app.models.user import User
 from app.models.vcf_ops import VcfOpsConnection, VcfOpsCoreLicenseItem
 from app.schemas.vcf_ops import (
     VcfOpsConnectionCreate,
     VcfOpsConnectionRead,
     VcfOpsCoreLicenseItemRead,
+    VcfOpsSyncIntervalUpdate,
 )
 from app.services.vcf_ops_client import collect_core_license_usage
 
@@ -28,6 +31,7 @@ def _to_read(connection: VcfOpsConnection, db: Session) -> VcfOpsConnectionRead:
             "host": connection.host,
             "username": connection.username,
             "tls_skip": connection.tls_skip,
+            "sync_interval_minutes": connection.sync_interval_minutes,
             "detected_version": connection.detected_version,
             "status": connection.status,
             "last_error": connection.last_error,
@@ -85,13 +89,15 @@ def _sync_connection(connection: VcfOpsConnection, db: Session) -> None:
 
 
 @router.get("/connections", response_model=list[VcfOpsConnectionRead])
-def list_connections(db: Session = Depends(get_db)):
+def list_connections(db: Session = Depends(get_db), _: User = Depends(require_admin)):
     connections = db.query(VcfOpsConnection).order_by(VcfOpsConnection.created_at.desc()).all()
     return [_to_read(c, db) for c in connections]
 
 
 @router.post("/connections", response_model=VcfOpsConnectionRead, status_code=201)
-def create_connection(payload: VcfOpsConnectionCreate, db: Session = Depends(get_db)):
+def create_connection(
+    payload: VcfOpsConnectionCreate, db: Session = Depends(get_db), _: User = Depends(require_admin)
+):
     if db.query(VcfOpsConnection).filter(VcfOpsConnection.name == payload.name).first():
         raise HTTPException(status_code=409, detail="같은 이름의 연결이 이미 존재합니다.")
 
@@ -101,6 +107,7 @@ def create_connection(payload: VcfOpsConnectionCreate, db: Session = Depends(get
         username=payload.username,
         password=payload.password,
         tls_skip=payload.tls_skip,
+        sync_interval_minutes=payload.sync_interval_minutes,
         status="pending",
     )
     db.add(connection)
@@ -112,7 +119,9 @@ def create_connection(payload: VcfOpsConnectionCreate, db: Session = Depends(get
 
 
 @router.post("/connections/{connection_id}/sync", response_model=VcfOpsConnectionRead)
-def sync_connection(connection_id: int, db: Session = Depends(get_db)):
+def sync_connection(
+    connection_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)
+):
     connection = db.get(VcfOpsConnection, connection_id)
     if connection is None:
         raise HTTPException(status_code=404, detail="연결을 찾을 수 없습니다.")
@@ -120,11 +129,31 @@ def sync_connection(connection_id: int, db: Session = Depends(get_db)):
     return _to_read(connection, db)
 
 
+@router.patch("/connections/{connection_id}/sync-interval", response_model=VcfOpsConnectionRead)
+def update_sync_interval(
+    connection_id: int,
+    payload: VcfOpsSyncIntervalUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    connection = db.get(VcfOpsConnection, connection_id)
+    if connection is None:
+        raise HTTPException(status_code=404, detail="연결을 찾을 수 없습니다.")
+    if payload.minutes < 1:
+        raise HTTPException(status_code=400, detail="동기화 주기는 1분 이상이어야 합니다.")
+    connection.sync_interval_minutes = payload.minutes
+    db.commit()
+    db.refresh(connection)
+    return _to_read(connection, db)
+
+
 @router.get(
     "/connections/{connection_id}/inventory",
     response_model=list[VcfOpsCoreLicenseItemRead],
 )
-def get_inventory(connection_id: int, db: Session = Depends(get_db)):
+def get_inventory(
+    connection_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)
+):
     connection = db.get(VcfOpsConnection, connection_id)
     if connection is None:
         raise HTTPException(status_code=404, detail="연결을 찾을 수 없습니다.")
@@ -137,7 +166,9 @@ def get_inventory(connection_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/connections/{connection_id}", status_code=204)
-def delete_connection(connection_id: int, db: Session = Depends(get_db)):
+def delete_connection(
+    connection_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)
+):
     connection = db.get(VcfOpsConnection, connection_id)
     if connection is None:
         raise HTTPException(status_code=404, detail="연결을 찾을 수 없습니다.")
@@ -150,8 +181,15 @@ def list_vcf_ops_items(
     assignable_for_project: int | None = None,
     assigned_to_project: int | None = None,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     query = db.query(VcfOpsCoreLicenseItem)
+    if not current_user.is_admin:
+        if current_user.project_id is None:
+            return []
+        return query.filter(VcfOpsCoreLicenseItem.project_id == current_user.project_id).order_by(
+            VcfOpsCoreLicenseItem.connection_id, VcfOpsCoreLicenseItem.license_key
+        ).all()
     if assigned_to_project is not None:
         query = query.filter(VcfOpsCoreLicenseItem.project_id == assigned_to_project)
     elif assignable_for_project is not None:

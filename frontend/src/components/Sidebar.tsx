@@ -1,4 +1,6 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+
+import { useAuth } from "../auth/AuthContext";
 
 const NAV_ITEMS = [
   { to: "/license-overview", label: "라이센스 종합 현황" },
@@ -10,9 +12,17 @@ const NAV_ITEMS = [
 const SETTINGS_ITEM = { to: "/admin", label: "설정" };
 
 function Sidebar() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleLogout() {
+    await logout();
+    navigate("/login", { replace: true });
+  }
+
   return (
     <nav className="sidebar">
-      <p className="sidebar-title">VCF Lic MGMT</p>
+      <p className="sidebar-title">VCF License Management</p>
       {NAV_ITEMS.map((item) => (
         <NavLink
           key={item.to}
@@ -22,12 +32,25 @@ function Sidebar() {
           {item.label}
         </NavLink>
       ))}
-      <NavLink
-        to={SETTINGS_ITEM.to}
-        className={({ isActive }) => `sidebar-link sidebar-link-bottom${isActive ? " active" : ""}`}
-      >
-        {SETTINGS_ITEM.label}
-      </NavLink>
+      {user?.is_admin && (
+        <NavLink
+          to={SETTINGS_ITEM.to}
+          className={({ isActive }) =>
+            `sidebar-link sidebar-link-bottom${isActive ? " active" : ""}`
+          }
+        >
+          {SETTINGS_ITEM.label}
+        </NavLink>
+      )}
+      <div className="sidebar-user">
+        <div className="sidebar-user-name">
+          {user?.username}
+          {user?.project_name && <span className="sidebar-user-project">{user.project_name}</span>}
+        </div>
+        <button className="sidebar-logout" onClick={handleLogout}>
+          로그아웃
+        </button>
+      </div>
     </nav>
   );
 }

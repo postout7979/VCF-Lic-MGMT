@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 
-import { deleteVCenterConnection, fetchVCenterConnections, syncVCenterConnection } from "../../api/client";
+import {
+  deleteVCenterConnection,
+  fetchVCenterConnections,
+  syncVCenterConnection,
+  updateVCenterSyncInterval,
+} from "../../api/client";
 import ConnectVCenterModal from "../../components/ConnectVCenterModal";
+import SyncIntervalModal from "../../components/SyncIntervalModal";
 import VCenterInventoryModal from "../../components/VCenterInventoryModal";
 import type { VCenterConnection } from "../../types";
 
@@ -16,6 +22,7 @@ function LegacyInfraTab() {
   const [loading, setLoading] = useState(true);
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [inventoryTarget, setInventoryTarget] = useState<VCenterConnection | null>(null);
+  const [intervalTarget, setIntervalTarget] = useState<VCenterConnection | null>(null);
   const [syncingId, setSyncingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,6 +87,7 @@ function LegacyInfraTab() {
                 <th>상태</th>
                 <th>수집된 Host 수</th>
                 <th>마지막 동기화</th>
+                <th>동기화 주기</th>
                 <th></th>
               </tr>
             </thead>
@@ -98,6 +106,7 @@ function LegacyInfraTab() {
                       ? new Date(connection.last_synced_at).toLocaleString()
                       : "-"}
                   </td>
+                  <td>{connection.sync_interval_minutes}분</td>
                   <td style={{ display: "flex", gap: 6 }}>
                     <button
                       className="btn btn-secondary"
@@ -111,6 +120,12 @@ function LegacyInfraTab() {
                       disabled={syncingId === connection.id}
                     >
                       {syncingId === connection.id ? "동기화 중..." : "동기화"}
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setIntervalTarget(connection)}
+                    >
+                      동기화 주기 설정
                     </button>
                     <button className="btn btn-danger" onClick={() => handleDelete(connection)}>
                       삭제
@@ -144,6 +159,17 @@ function LegacyInfraTab() {
         <VCenterInventoryModal
           connection={inventoryTarget}
           onClose={() => setInventoryTarget(null)}
+        />
+      )}
+      {intervalTarget && (
+        <SyncIntervalModal
+          connectionName={intervalTarget.name}
+          currentMinutes={intervalTarget.sync_interval_minutes}
+          onClose={() => setIntervalTarget(null)}
+          onSave={async (minutes) => {
+            await updateVCenterSyncInterval(intervalTarget.id, minutes);
+            loadConnections();
+          }}
         />
       )}
     </div>

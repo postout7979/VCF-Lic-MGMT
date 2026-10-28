@@ -26,6 +26,7 @@ class VcfOpsConnection(Base):
     status: Mapped[str] = mapped_column(String, default="pending")  # pending|connected|failed
     last_error: Mapped[str | None] = mapped_column(String, nullable=True)
     last_synced_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    sync_interval_minutes: Mapped[int] = mapped_column(Integer, default=60, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     core_license_items = relationship(

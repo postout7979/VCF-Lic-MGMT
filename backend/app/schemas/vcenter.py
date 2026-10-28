@@ -11,6 +11,11 @@ class VCenterConnectionCreate(BaseModel):
     password: str
     version_hint: Literal["7.x", "8.x"]
     tls_skip: bool = True
+    sync_interval_minutes: int = 60
+
+
+class VCenterSyncIntervalUpdate(BaseModel):
+    minutes: int
 
 
 class VCenterInventoryItemRead(BaseModel):
@@ -38,6 +43,7 @@ class VCenterConnectionRead(BaseModel):
     username: str
     version_hint: str
     tls_skip: bool = True
+    sync_interval_minutes: int = 60
     detected_version: str | None
     status: str
     last_error: str | None

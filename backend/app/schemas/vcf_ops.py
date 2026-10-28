@@ -9,6 +9,11 @@ class VcfOpsConnectionCreate(BaseModel):
     username: str
     password: str
     tls_skip: bool = True
+    sync_interval_minutes: int = 60
+
+
+class VcfOpsSyncIntervalUpdate(BaseModel):
+    minutes: int
 
 
 class VcfOpsCoreLicenseItemRead(BaseModel):
@@ -35,6 +40,7 @@ class VcfOpsConnectionRead(BaseModel):
     host: str
     username: str
     tls_skip: bool = True
+    sync_interval_minutes: int = 60
     detected_version: str | None
     status: str
     last_error: str | None

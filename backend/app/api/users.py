@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.auth import require_admin
 from app.core.database import get_db
 from app.models.project import Project
 from app.models.user import User
 from app.schemas.user import AssignUserProjectRequest, UserCreate, UserRead, UserUpdate
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(require_admin)])
 
 
 def _to_read(user: User, db: Session) -> UserRead:
@@ -19,6 +20,7 @@ def _to_read(user: User, db: Session) -> UserRead:
         username=user.username,
         password=user.password,
         email=user.email,
+        is_admin=user.is_admin,
         project_id=user.project_id,
         project_name=project_name,
         created_at=user.created_at,
@@ -60,6 +62,10 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
 
     if payload.username is not None:
+        if user.is_admin:
+            raise HTTPException(
+                status_code=400, detail="admin 계정은 이메일과 비밀번호만 수정할 수 있습니다."
+            )
         username = payload.username.strip()
         if not username:
             raise HTTPException(status_code=400, detail="Username을 입력해주세요.")
@@ -92,6 +98,8 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+    if user.is_admin:
+        raise HTTPException(status_code=400, detail="admin 계정은 삭제할 수 없습니다.")
     db.delete(user)
     db.commit()
 

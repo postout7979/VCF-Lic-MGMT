@@ -22,6 +22,7 @@ class UserRead(BaseModel):
     username: str
     password: str
     email: str
+    is_admin: bool = False
     project_id: int | None
     project_name: str | None = None
     created_at: datetime

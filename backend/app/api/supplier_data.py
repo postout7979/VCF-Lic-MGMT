@@ -5,8 +5,10 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.auth import require_admin
 from app.core.database import get_db
 from app.models.license_item import LicenseItem
+from app.models.user import User
 from app.schemas.license_item import (
     DeleteUploadsRequest,
     LicenseItemPage,
@@ -43,7 +45,10 @@ SORTABLE_FIELDS = {
 
 @router.post("/upload", response_model=UploadResult)
 def upload_supplier_data(
-    file: UploadFile, upload_name: str = Form(...), db: Session = Depends(get_db)
+    file: UploadFile,
+    upload_name: str = Form(...),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     if not file.filename.lower().endswith((".xlsx", ".xlsm")):
         raise HTTPException(status_code=400, detail="엑셀 파일(.xlsx)만 업로드할 수 있습니다.")
@@ -58,13 +63,13 @@ def upload_supplier_data(
 
 
 @router.delete("", status_code=204)
-def delete_all_supplier_data(db: Session = Depends(get_db)):
+def delete_all_supplier_data(db: Session = Depends(get_db), _: User = Depends(require_admin)):
     db.query(LicenseItem).delete()
     db.commit()
 
 
 @router.get("/uploads", response_model=list[UploadBatchRead])
-def list_uploads(db: Session = Depends(get_db)):
+def list_uploads(db: Session = Depends(get_db), _: User = Depends(require_admin)):
     rows = (
         db.query(
             LicenseItem.upload_name,
@@ -82,7 +87,9 @@ def list_uploads(db: Session = Depends(get_db)):
 
 
 @router.delete("/uploads", status_code=204)
-def delete_uploads(payload: DeleteUploadsRequest, db: Session = Depends(get_db)):
+def delete_uploads(
+    payload: DeleteUploadsRequest, db: Session = Depends(get_db), _: User = Depends(require_admin)
+):
     if not payload.upload_names:
         return
     db.query(LicenseItem).filter(LicenseItem.upload_name.in_(payload.upload_names)).delete(
@@ -96,6 +103,7 @@ def list_supplier_data(
     unassigned_only: bool = False,
     assignable_for_project: int | None = None,
     db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     query = db.query(LicenseItem)
     if assignable_for_project is not None:
@@ -116,6 +124,7 @@ def search_supplier_data(
     sort_field: str | None = None,
     sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     query = db.query(LicenseItem)
 

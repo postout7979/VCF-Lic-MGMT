@@ -12,6 +12,7 @@ interface Props {
 
 function UserFormModal({ user, onClose, onSaved }: Props) {
   const isEdit = user !== null;
+  const isAdminAccount = user?.is_admin ?? false;
   const [username, setUsername] = useState(user?.username ?? "");
   const [password, setPassword] = useState(user?.password ?? generatePassword());
   const [email, setEmail] = useState(user?.email ?? "");
@@ -28,7 +29,7 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
     try {
       if (isEdit && user) {
         await updateUser(user.id, {
-          username: username.trim(),
+          ...(isAdminAccount ? {} : { username: username.trim() }),
           password,
           email: email.trim(),
         });
@@ -48,7 +49,9 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
     <div className="modal-overlay">
       <div className="modal-box narrow">
         <h2>{isEdit ? "사용자 수정" : "사용자 추가"}</h2>
-        <p className="text-muted">로그인 기능은 아직 구현되지 않았습니다. 계정 정보만 관리합니다.</p>
+        {isAdminAccount && (
+          <p className="text-muted">admin 계정은 이메일과 비밀번호만 수정할 수 있습니다.</p>
+        )}
 
         <div className="form-grid" style={{ marginTop: 16 }}>
           <div className="form-field" style={{ gridColumn: "1 / -1" }}>
@@ -58,6 +61,7 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
               placeholder="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              disabled={isAdminAccount}
             />
           </div>
           <div className="form-field" style={{ gridColumn: "1 / -1" }}>

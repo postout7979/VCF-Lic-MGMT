@@ -48,7 +48,8 @@ function UsersTab() {
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="form-row" style={{ marginBottom: 0, justifyContent: "space-between" }}>
           <p className="text-muted" style={{ margin: 0 }}>
-            사용자 계정 정보를 관리합니다. 로그인 기능은 아직 구현되지 않았습니다.
+            사용자 계정 정보를 관리합니다. admin 계정은 모든 메뉴에 접근할 수 있고, 그 외 사용자는
+            할당된 프로젝트만 볼 수 있습니다.
           </p>
           <button className="btn" onClick={() => setFormTarget("new")}>
             사용자 추가
@@ -79,7 +80,14 @@ function UsersTab() {
               <tbody>
                 {users.map((user) => (
                   <tr key={user.id}>
-                    <td>{user.username}</td>
+                    <td>
+                      {user.username}
+                      {user.is_admin && (
+                        <span className="badge badge-success" style={{ marginLeft: 8 }}>
+                          관리자
+                        </span>
+                      )}
+                    </td>
                     <td>
                       <span style={{ fontFamily: "monospace", marginRight: 8 }}>
                         {revealed.has(user.id) ? user.password : "•".repeat(10)}
@@ -99,12 +107,19 @@ function UsersTab() {
                       <button className="btn btn-secondary" onClick={() => setFormTarget(user)}>
                         수정
                       </button>
-                      <button className="btn btn-secondary" onClick={() => setAssignTarget(user)}>
-                        프로젝트 할당
-                      </button>
-                      <button className="btn btn-danger" onClick={() => handleDelete(user)}>
-                        삭제
-                      </button>
+                      {!user.is_admin && (
+                        <>
+                          <button
+                            className="btn btn-secondary"
+                            onClick={() => setAssignTarget(user)}
+                          >
+                            프로젝트 할당
+                          </button>
+                          <button className="btn btn-danger" onClick={() => handleDelete(user)}>
+                            삭제
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}

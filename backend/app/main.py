@@ -1,7 +1,11 @@
+import asyncio
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 
+from app.api.auth import router as auth_router
 from app.api.csp_data import router as csp_data_router
 from app.api.legacy_infra import router as legacy_infra_router
 from app.api.projects import router as projects_router
@@ -9,7 +13,8 @@ from app.api.supplier_data import router as supplier_data_router
 from app.api.users import router as users_router
 from app.api.vcf_ops import router as vcf_ops_router
 from app.core.config import settings
-from app.core.database import Base, engine
+from app.core.database import Base, SessionLocal, engine
+from app.services.scheduler import scheduler_loop
 from app.models import (  # noqa: F401  (register models with Base)
     CspLicenseItem,
     LicenseItem,
@@ -53,17 +58,24 @@ SCHEMA_PATCHES = [
     # to true to preserve existing connections' current behavior.
     "ALTER TABLE vcenter_connections ADD COLUMN IF NOT EXISTS tls_skip BOOLEAN NOT NULL DEFAULT true",
     "ALTER TABLE vcf_ops_connections ADD COLUMN IF NOT EXISTS tls_skip BOOLEAN NOT NULL DEFAULT true",
+    # Login/authorization: is_admin + session_token on users, and a
+    # per-connection auto-sync interval.
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS session_token VARCHAR",
+    "ALTER TABLE vcenter_connections ADD COLUMN IF NOT EXISTS sync_interval_minutes INTEGER NOT NULL DEFAULT 60",
+    "ALTER TABLE vcf_ops_connections ADD COLUMN IF NOT EXISTS sync_interval_minutes INTEGER NOT NULL DEFAULT 60",
 ]
 
 app = FastAPI(title="VCF License Management")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "https://localhost:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(auth_router, prefix=settings.api_v1_prefix)
 app.include_router(supplier_data_router, prefix=settings.api_v1_prefix)
 app.include_router(projects_router, prefix=settings.api_v1_prefix)
 app.include_router(legacy_infra_router, prefix=settings.api_v1_prefix)
@@ -72,12 +84,29 @@ app.include_router(csp_data_router, prefix=settings.api_v1_prefix)
 app.include_router(users_router, prefix=settings.api_v1_prefix)
 
 
+def _seed_admin_user(db: Session) -> None:
+    from app.models.user import User
+
+    if db.query(User).filter(User.username == "admin").first() is not None:
+        return
+    db.add(User(username="admin", password="admin", email="admin@local", is_admin=True))
+    db.commit()
+
+
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
     with engine.begin() as conn:
         for statement in SCHEMA_PATCHES:
             conn.execute(text(statement))
+
+    db = SessionLocal()
+    try:
+        _seed_admin_user(db)
+    finally:
+        db.close()
+
+    asyncio.create_task(scheduler_loop())
 
 
 @app.get("/health")

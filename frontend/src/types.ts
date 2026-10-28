@@ -81,6 +81,7 @@ export interface VCenterConnection {
   username: string;
   version_hint: VCenterVersionHint;
   tls_skip: boolean;
+  sync_interval_minutes: number;
   detected_version: string | null;
   status: "pending" | "connected" | "failed";
   last_error: string | null;
@@ -115,6 +116,7 @@ export interface VcfOpsConnection {
   host: string;
   username: string;
   tls_skip: boolean;
+  sync_interval_minutes: number;
   detected_version: string | null;
   status: "pending" | "connected" | "failed";
   last_error: string | null;
@@ -142,9 +144,19 @@ export interface User {
   username: string;
   password: string;
   email: string;
+  is_admin: boolean;
   project_id: number | null;
   project_name: string | null;
   created_at: string;
+}
+
+export interface CurrentUser {
+  id: number;
+  username: string;
+  email: string;
+  is_admin: boolean;
+  project_id: number | null;
+  project_name: string | null;
 }
 
 export interface CspLicenseItem {

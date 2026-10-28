@@ -5,8 +5,10 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.auth import get_current_user, require_admin
 from app.core.database import get_db
 from app.models.csp_data import CspLicenseItem
+from app.models.user import User
 from app.schemas.csp_data import (
     CspDeleteUploadsRequest,
     CspLicenseItemPage,
@@ -35,7 +37,10 @@ SORTABLE_FIELDS = {
 
 @router.post("/upload", response_model=CspUploadResult)
 def upload_csp_data(
-    file: UploadFile, upload_name: str = Form(...), db: Session = Depends(get_db)
+    file: UploadFile,
+    upload_name: str = Form(...),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     if not file.filename.lower().endswith((".xlsx", ".xlsm")):
         raise HTTPException(status_code=400, detail="엑셀 파일(.xlsx)만 업로드할 수 있습니다.")
@@ -50,13 +55,13 @@ def upload_csp_data(
 
 
 @router.delete("", status_code=204)
-def delete_all_csp_data(db: Session = Depends(get_db)):
+def delete_all_csp_data(db: Session = Depends(get_db), _: User = Depends(require_admin)):
     db.query(CspLicenseItem).delete()
     db.commit()
 
 
 @router.get("/uploads", response_model=list[CspUploadBatchRead])
-def list_uploads(db: Session = Depends(get_db)):
+def list_uploads(db: Session = Depends(get_db), _: User = Depends(require_admin)):
     rows = (
         db.query(
             CspLicenseItem.upload_name,
@@ -74,7 +79,9 @@ def list_uploads(db: Session = Depends(get_db)):
 
 
 @router.delete("/uploads", status_code=204)
-def delete_uploads(payload: CspDeleteUploadsRequest, db: Session = Depends(get_db)):
+def delete_uploads(
+    payload: CspDeleteUploadsRequest, db: Session = Depends(get_db), _: User = Depends(require_admin)
+):
     if not payload.upload_names:
         return
     db.query(CspLicenseItem).filter(CspLicenseItem.upload_name.in_(payload.upload_names)).delete(
@@ -89,8 +96,15 @@ def list_csp_data(
     assignable_for_project: int | None = None,
     assigned_to_project: int | None = None,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     query = db.query(CspLicenseItem)
+    if not current_user.is_admin:
+        if current_user.project_id is None:
+            return []
+        return query.filter(CspLicenseItem.project_id == current_user.project_id).order_by(
+            CspLicenseItem.id
+        ).all()
     if assigned_to_project is not None:
         query = query.filter(CspLicenseItem.project_id == assigned_to_project)
     elif assignable_for_project is not None:
@@ -111,6 +125,7 @@ def search_csp_data(
     sort_field: str | None = None,
     sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
     query = db.query(CspLicenseItem)
 
