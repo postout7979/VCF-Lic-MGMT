@@ -125,9 +125,7 @@ function ProjectAdminTab() {
                 <th colSpan={3} style={{ textAlign: "center" }}>
                   VCF 데이터
                 </th>
-                <th rowSpan={2} style={{ textAlign: "center" }}>
-                  CSP 데이터
-                </th>
+                <th style={{ textAlign: "center" }}>CSP 데이터</th>
                 <th rowSpan={2}></th>
               </tr>
               <tr>
