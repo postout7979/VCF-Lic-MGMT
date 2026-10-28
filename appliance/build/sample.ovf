@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Envelope vmw:buildId="build-00000000" xmlns="http://schemas.dmtf.org/ovf/envelope/1" xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1" xmlns:vmw="http://www.vmware.com/schema/ovf" xmlns:rasd="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ResourceAllocationSettingData" xmlns:vssd="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData">
+  <References/>
+  <DiskSection>
+    <Info>Virtual disk information</Info>
+  </DiskSection>
+  <NetworkSection>
+    <Info>The list of logical networks</Info>
+  </NetworkSection>
+  <VirtualSystem ovf:id="photon-sample">
+    <Info>A sample Photon OS virtual machine, structurally representative of a real export - used only to sanity-check merge-ovf-properties.py</Info>
+    <Name>photon-sample</Name>
+    <OperatingSystemSection ovf:id="36" vmw:osType="vmwarePhoton64Guest">
+      <Info>The kind of installed guest operating system</Info>
+    </OperatingSystemSection>
+    <VirtualHardwareSection>
+      <Info>Virtual hardware requirements</Info>
+    </VirtualHardwareSection>
+  </VirtualSystem>
+</Envelope>

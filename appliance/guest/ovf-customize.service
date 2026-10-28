@@ -1,0 +1,16 @@
+[Unit]
+Description=Apply OVF guest customization (hostname/network/DNS/NTP/root password)
+ConditionPathExists=!/etc/.ovf-customized
+# Run before networkd brings interfaces up, but after VMware Tools is
+# available (it's what delivers the guestinfo.* properties).
+After=open-vm-tools.service
+Before=systemd-networkd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/ovf-customize.sh
+RemainAfterExit=yes
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target

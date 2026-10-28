@@ -1,0 +1,23 @@
+# Production image for the appliance: builds the static frontend and
+# serves it with nginx, instead of the Vite dev server used in
+# frontend/Dockerfile (dev/sandbox only - not meant to run unattended on
+# an appliance).
+#
+# Built with context = repo root (see ../docker-compose.prod.yml) so it
+# can COPY both frontend/ and this appliance's own nginx.conf.
+FROM node:20-slim AS build
+WORKDIR /app
+COPY frontend/package.json ./
+RUN npm install
+COPY frontend/ .
+RUN npm run build
+
+FROM nginx:1.27-alpine
+RUN apk add --no-cache openssl \
+    && mkdir -p /etc/nginx/certs \
+    && openssl req -x509 -nodes -newkey rsa:2048 \
+       -keyout /etc/nginx/certs/key.pem -out /etc/nginx/certs/cert.pem -days 825 \
+       -subj "/CN=vcf-lic-mgmt"
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY appliance/docker/frontend/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80 443
