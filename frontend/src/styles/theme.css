@@ -515,38 +515,3 @@ select:focus {
   border-bottom: none;
 }
 
-/* two-pane layout */
-
-.split-pane {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 16px;
-  align-items: start;
-}
-
-.vc-name-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.vc-name-item {
-  text-align: left;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-md);
-  padding: 10px 14px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.vc-name-item:hover {
-  background: #eef1f7;
-}
-
-.vc-name-item.active {
-  background: var(--color-primary);
-  color: #ffffff;
-}

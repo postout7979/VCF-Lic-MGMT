@@ -4,11 +4,18 @@ import { fetchProjects, fetchVCenterItems, fetchVcfOpsItems } from "../api/clien
 import LicenseTypeBadge from "../components/LicenseTypeBadge";
 import type { ProjectSummary, VCenterInventoryItem, VcfOpsCoreLicenseItem } from "../types";
 
+type InfraType = "legacy" | "vcf";
+
+const INFRA_OPTIONS: { value: InfraType; label: string }[] = [
+  { value: "legacy", label: "Legacy Infra" },
+  { value: "vcf", label: "VCF Infra" },
+];
+
 function RealtimeUsagePage() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [infraType, setInfraType] = useState<InfraType>("legacy");
   const [items, setItems] = useState<VCenterInventoryItem[]>([]);
-  const [selectedVCenter, setSelectedVCenter] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [vcfItems, setVcfItems] = useState<VcfOpsCoreLicenseItem[]>([]);
   const [vcfLoading, setVcfLoading] = useState(false);
@@ -27,10 +34,7 @@ function RealtimeUsagePage() {
     }
     setLoading(true);
     fetchVCenterItems({ assignedToProject: selectedProjectId })
-      .then((data) => {
-        setItems(data);
-        setSelectedVCenter(null);
-      })
+      .then(setItems)
       .finally(() => setLoading(false));
   }, [selectedProjectId]);
 
@@ -59,12 +63,8 @@ function RealtimeUsagePage() {
     return { connectionCount, licenseCount: vcfItems.length, coreCapacity, coreUsed };
   }, [vcfItems]);
 
-  const vcenterNames = useMemo(
-    () => Array.from(new Set(items.map((item) => item.vcenter_name ?? "(알 수 없음)"))),
-    [items],
-  );
-
   const stats = useMemo(() => {
+    const vcenterNames = new Set(items.map((item) => item.vcenter_name ?? "(알 수 없음)"));
     const clusterKeys = new Set(items.map((item) => `${item.vcenter_name}::${item.cluster_name}`));
     // Perpetual licensing is per-socket; term (subscription) licensing is
     // per-core actually consumed - same convention as the project summary.
@@ -75,94 +75,94 @@ function RealtimeUsagePage() {
       .filter((item) => item.license_category === "SUBSCRIPTION")
       .reduce((sum, item) => sum + (item.total_cores ?? 0), 0);
     return {
-      vcenterCount: vcenterNames.length,
+      vcenterCount: vcenterNames.size,
       clusterCount: clusterKeys.size,
       hostCount: items.length,
       perpetualQuantity,
       termQuantity,
     };
-  }, [items, vcenterNames]);
-
-  const detailRows = useMemo(() => {
-    if (!selectedVCenter) return [];
-    return items.filter((item) => (item.vcenter_name ?? "(알 수 없음)") === selectedVCenter);
-  }, [items, selectedVCenter]);
+  }, [items]);
 
   return (
     <div>
       <div className="card" style={{ marginBottom: 20 }}>
-        <div className="form-field" style={{ maxWidth: 320 }}>
-          <label>프로젝트 선택</label>
-          <select
-            value={selectedProjectId ?? ""}
-            onChange={(e) => setSelectedProjectId(e.target.value ? Number(e.target.value) : null)}
-          >
-            {projects.length === 0 && <option value="">생성된 프로젝트가 없습니다</option>}
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
+        <div className="form-row" style={{ marginBottom: 0 }}>
+          <div className="form-field" style={{ maxWidth: 320 }}>
+            <label>프로젝트 선택</label>
+            <select
+              value={selectedProjectId ?? ""}
+              onChange={(e) => setSelectedProjectId(e.target.value ? Number(e.target.value) : null)}
+            >
+              {projects.length === 0 && <option value="">생성된 프로젝트가 없습니다</option>}
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field" style={{ maxWidth: 220 }}>
+            <label>인프라 유형</label>
+            <select
+              value={infraType}
+              onChange={(e) => setInfraType(e.target.value as InfraType)}
+            >
+              {INFRA_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
-      <h1 className="page-title">Legacy Infra</h1>
+      <h1 className="page-title">
+        {INFRA_OPTIONS.find((option) => option.value === infraType)?.label}
+      </h1>
 
-      {loading ? (
-        <p className="text-muted">불러오는 중...</p>
-      ) : selectedProjectId === null ? (
+      {selectedProjectId === null ? (
         <div className="card placeholder-card">프로젝트를 먼저 생성해주세요.</div>
-      ) : (
-        <>
-          <div className="card summary-card">
-            <table className="summary-table">
-              <thead>
-                <tr>
-                  <th>vCenter 수</th>
-                  <th>Cluster 수</th>
-                  <th>Host 수</th>
-                  <th>Perpetual 수량</th>
-                  <th>Term 수량</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>{stats.vcenterCount}</td>
-                  <td>{stats.clusterCount}</td>
-                  <td>{stats.hostCount}</td>
-                  <td>{stats.perpetualQuantity.toLocaleString()}</td>
-                  <td>{stats.termQuantity.toLocaleString()}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {items.length === 0 ? (
-            <div className="card placeholder-card">
-              이 프로젝트에 vCenter 할당 정보가 없습니다. 관리자 &gt; 프로젝트 탭에서 "vCenter
-              할당"으로 추가해주세요.
+      ) : infraType === "legacy" ? (
+        loading ? (
+          <p className="text-muted">불러오는 중...</p>
+        ) : (
+          <>
+            <div className="card summary-card">
+              <table className="summary-table">
+                <thead>
+                  <tr>
+                    <th>vCenter 수</th>
+                    <th>Cluster 수</th>
+                    <th>Host 수</th>
+                    <th>Perpetual 수량</th>
+                    <th>Term 수량</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{stats.vcenterCount}</td>
+                    <td>{stats.clusterCount}</td>
+                    <td>{stats.hostCount}</td>
+                    <td>{stats.perpetualQuantity.toLocaleString()}</td>
+                    <td>{stats.termQuantity.toLocaleString()}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-          ) : (
-            <div className="card split-pane">
-              <div className="vc-name-list">
-                {vcenterNames.map((name) => (
-                  <button
-                    key={name}
-                    className={`vc-name-item${selectedVCenter === name ? " active" : ""}`}
-                    onClick={() => setSelectedVCenter((prev) => (prev === name ? null : name))}
-                  >
-                    {name}
-                  </button>
-                ))}
+
+            {items.length === 0 ? (
+              <div className="card placeholder-card">
+                이 프로젝트에 vCenter 할당 정보가 없습니다. 설정 &gt; 프로젝트 탭에서 "vCenter
+                할당"으로 추가해주세요.
               </div>
-              <div>
-                {selectedVCenter === null ? (
-                  <p className="text-muted">좌측에서 vCenter를 선택하세요.</p>
-                ) : (
+            ) : (
+              <div className="card">
+                <div style={{ overflowX: "auto" }}>
                   <table>
                     <thead>
                       <tr>
+                        <th>vCenter</th>
                         <th>Cluster Name</th>
                         <th>Host Name</th>
                         <th>License Key</th>
@@ -170,8 +170,9 @@ function RealtimeUsagePage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {detailRows.map((item) => (
+                      {items.map((item) => (
                         <tr key={item.id}>
+                          <td>{item.vcenter_name ?? "-"}</td>
                           <td>{item.cluster_name}</td>
                           <td>{item.host_name}</td>
                           <td>{item.license_key}</td>
@@ -186,85 +187,81 @@ function RealtimeUsagePage() {
                       ))}
                     </tbody>
                   </table>
-                )}
+                </div>
               </div>
+            )}
+          </>
+        )
+      ) : vcfLoading ? (
+        <p className="text-muted">불러오는 중...</p>
+      ) : (
+        <>
+          <div className="card summary-card">
+            <table className="summary-table">
+              <thead>
+                <tr>
+                  <th>VCF 연결 수</th>
+                  <th>라이센스 항목 수</th>
+                  <th>할당 코어 합계</th>
+                  <th>사용 중 코어 합계</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{vcfStats.connectionCount}</td>
+                  <td>{vcfStats.licenseCount}</td>
+                  <td>{vcfStats.coreCapacity.toLocaleString()}</td>
+                  <td>{vcfStats.coreUsed.toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {vcfItems.length === 0 ? (
+            <div className="card placeholder-card">
+              이 프로젝트에 VCF 할당 정보가 없습니다. 설정 &gt; 프로젝트 탭에서 "VCF 할당"으로
+              추가해주세요.
             </div>
-          )}
-
-          <h1 className="page-title" style={{ marginTop: 32 }}>
-            VCF Infra
-          </h1>
-
-          {vcfLoading ? (
-            <p className="text-muted">불러오는 중...</p>
           ) : (
-            <>
-              <div className="card summary-card">
-                <table className="summary-table">
+            <div className="card">
+              <div style={{ overflowX: "auto" }}>
+                <table>
                   <thead>
                     <tr>
-                      <th>VCF 연결 수</th>
-                      <th>라이센스 항목 수</th>
-                      <th>할당 코어 합계</th>
-                      <th>사용 중 코어 합계</th>
+                      <th>VCF 연결</th>
+                      <th>Domain</th>
+                      <th>License Key</th>
+                      <th>License Type</th>
+                      <th>상태</th>
+                      <th>할당 코어 수</th>
+                      <th>사용 중 코어 수</th>
+                      <th>검증된 사용량</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td>{vcfStats.connectionCount}</td>
-                      <td>{vcfStats.licenseCount}</td>
-                      <td>{vcfStats.coreCapacity.toLocaleString()}</td>
-                      <td>{vcfStats.coreUsed.toLocaleString()}</td>
-                    </tr>
+                    {vcfItems.map((item) => {
+                      const mismatch =
+                        item.verified_core_used !== null &&
+                        item.verified_core_used !== item.core_used;
+                      return (
+                        <tr key={item.id}>
+                          <td>{item.connection_name ?? "-"}</td>
+                          <td>{item.domain_name ?? "-"}</td>
+                          <td>{item.license_key ?? "-"}</td>
+                          <td>{item.license_type ?? "-"}</td>
+                          <td>{item.license_status ?? "-"}</td>
+                          <td>{item.core_capacity ?? "-"}</td>
+                          <td>{item.core_used ?? "-"}</td>
+                          <td className={mismatch ? "error-text" : undefined}>
+                            {item.verified_core_used ?? "-"}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
-
-              {vcfItems.length === 0 ? (
-                <div className="card placeholder-card">
-                  이 프로젝트에 VCF 할당 정보가 없습니다. 설정 &gt; 프로젝트 탭에서 "VCF 할당"으로
-                  추가해주세요.
-                </div>
-              ) : (
-                <div className="card">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>VCF 연결</th>
-                        <th>Domain</th>
-                        <th>License Key</th>
-                        <th>License Type</th>
-                        <th>상태</th>
-                        <th>할당 코어 수</th>
-                        <th>사용 중 코어 수</th>
-                        <th>검증된 사용량</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {vcfItems.map((item) => {
-                        const mismatch =
-                          item.verified_core_used !== null &&
-                          item.verified_core_used !== item.core_used;
-                        return (
-                          <tr key={item.id}>
-                            <td>{item.connection_name ?? "-"}</td>
-                            <td>{item.domain_name ?? "-"}</td>
-                            <td>{item.license_key ?? "-"}</td>
-                            <td>{item.license_type ?? "-"}</td>
-                            <td>{item.license_status ?? "-"}</td>
-                            <td>{item.core_capacity ?? "-"}</td>
-                            <td>{item.core_used ?? "-"}</td>
-                            <td className={mismatch ? "error-text" : undefined}>
-                              {item.verified_core_used ?? "-"}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </>
+            </div>
           )}
         </>
       )}
