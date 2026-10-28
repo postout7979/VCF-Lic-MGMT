@@ -4,13 +4,13 @@ import { fetchProjects } from "../api/client";
 import DonutChart from "../components/DonutChart";
 import ListControls from "../components/ListControls";
 import Pagination from "../components/Pagination";
-import StatTile from "../components/StatTile";
 import { useListControls } from "../hooks/useListControls";
 import type { ProjectSummary } from "../types";
 
 const COLOR_PRIMARY = "#2563eb";
 const COLOR_ORANGE = "#eb6834";
 const COLOR_TRACK = "#e1e0d9";
+const COLOR_RED = "#dc2626";
 
 function LicenseOverviewPage() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
@@ -33,6 +33,7 @@ function LicenseOverviewPage() {
           vcfCapacity: acc.vcfCapacity + p.vcf_core_capacity,
           vcfUsed: acc.vcfUsed + p.vcf_core_used,
           cspCount: acc.cspCount + p.csp_license_count,
+          cspExpired: acc.cspExpired + p.csp_expired_count,
           userCount: acc.userCount + p.user_count,
         }),
         {
@@ -43,6 +44,7 @@ function LicenseOverviewPage() {
           vcfCapacity: 0,
           vcfUsed: 0,
           cspCount: 0,
+          cspExpired: 0,
           userCount: 0,
         },
       ),
@@ -70,11 +72,6 @@ function LicenseOverviewPage() {
       ) : (
         <>
           <div className="dashboard-grid">
-            <div className="stat-tile-row">
-              <StatTile label="총 프로젝트 수" value={projects.length} />
-              <StatTile label="총 사용자 수" value={totals.userCount} />
-              <StatTile label="CSP 라이센스 항목 수" value={totals.cspCount} accent={COLOR_ORANGE} />
-            </div>
             <div className="donut-grid">
               <DonutChart
                 title="공급자 라이센스 구성"
@@ -102,6 +99,15 @@ function LicenseOverviewPage() {
                 ]}
                 centerValue={`${vcfUsageRate}%`}
                 centerLabel={`${totals.vcfUsed.toLocaleString()} / ${totals.vcfCapacity.toLocaleString()}`}
+              />
+              <DonutChart
+                title="CSP 현황"
+                segments={[
+                  { label: "유효", value: totals.cspCount - totals.cspExpired, color: COLOR_PRIMARY },
+                  { label: "만료", value: totals.cspExpired, color: COLOR_RED },
+                ]}
+                centerValue={totals.cspCount.toLocaleString()}
+                centerLabel="총 항목 수"
               />
             </div>
           </div>
@@ -131,7 +137,6 @@ function LicenseOverviewPage() {
                       VCF 데이터
                     </th>
                     <th style={{ textAlign: "center" }}>CSP 데이터</th>
-                    <th rowSpan={2}>사용자 수</th>
                   </tr>
                   <tr>
                     <th>할당 항목 수</th>
@@ -161,7 +166,6 @@ function LicenseOverviewPage() {
                       <td>{project.vcf_core_capacity.toLocaleString()}</td>
                       <td>{project.vcf_core_used.toLocaleString()}</td>
                       <td>{project.csp_license_count}</td>
-                      <td>{project.user_count}</td>
                     </tr>
                   ))}
                 </tbody>

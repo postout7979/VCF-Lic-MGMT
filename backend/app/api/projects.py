@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -89,6 +91,15 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         .scalar()
         or 0
     )
+    csp_expired_count = (
+        db.query(func.count(CspLicenseItem.id))
+        .filter(
+            CspLicenseItem.project_id == project.id,
+            CspLicenseItem.contract_end_date < date.today(),
+        )
+        .scalar()
+        or 0
+    )
     user_count = (
         db.query(func.count(User.id)).filter(User.project_id == project.id).scalar() or 0
     )
@@ -106,6 +117,7 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         vcf_core_capacity=int(vcf_core_capacity),
         vcf_core_used=int(vcf_core_used),
         csp_license_count=int(csp_license_count),
+        csp_expired_count=int(csp_expired_count),
         user_count=int(user_count),
         item_count=item_count,
     )

@@ -19,7 +19,7 @@ function formatNumber(n: number): string {
   return n.toLocaleString();
 }
 
-function DonutChart({ title, segments, centerValue, centerLabel, size = 148 }: DonutChartProps) {
+function DonutChart({ title, segments, centerValue, centerLabel, size = 120 }: DonutChartProps) {
   const total = segments.reduce((sum, s) => sum + s.value, 0);
   const radius = size / 2;
   const stroke = size * 0.22;

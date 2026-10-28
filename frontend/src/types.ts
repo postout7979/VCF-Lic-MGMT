@@ -33,6 +33,7 @@ export interface ProjectSummary {
   vcf_core_capacity: number;
   vcf_core_used: number;
   csp_license_count: number;
+  csp_expired_count: number;
   user_count: number;
 }
 
