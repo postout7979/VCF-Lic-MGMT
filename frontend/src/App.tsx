@@ -5,6 +5,7 @@ import ProtectedRoute from "./auth/ProtectedRoute";
 import Sidebar from "./components/Sidebar";
 import AdminPage from "./pages/AdminPage";
 import CspStatusPage from "./pages/CspStatusPage";
+import LicenseKeyMatchPage from "./pages/LicenseKeyMatchPage";
 import LicenseOverviewPage from "./pages/LicenseOverviewPage";
 import LoginPage from "./pages/LoginPage";
 import ProjectsListView from "./pages/projects/ProjectsListView";
@@ -28,6 +29,7 @@ function AppShell() {
             />
             <Route path="/license-overview" element={<LicenseOverviewPage />} />
             <Route path="/realtime-usage" element={<RealtimeUsagePage />} />
+            <Route path="/license-key-match" element={<LicenseKeyMatchPage />} />
             <Route
               path="/projects"
               element={

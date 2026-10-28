@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: "/realtime-usage", label: "실시간 사용 현황" },
   { to: "/projects", label: "공급자 현황" },
   { to: "/csp-status", label: "Customer Support Portal 현황" },
+  { to: "/license-key-match", label: "라이센스 키 매칭 현황" },
 ];
 
 const SETTINGS_ITEM = { to: "/admin", label: "설정" };
