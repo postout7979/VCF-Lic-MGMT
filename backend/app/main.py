@@ -43,6 +43,7 @@ SCHEMA_PATCHES = [
     "ALTER TABLE vcf_ops_connections ALTER COLUMN username SET NOT NULL",
     "ALTER TABLE vcf_ops_connections ALTER COLUMN password SET NOT NULL",
     "ALTER TABLE vcf_ops_core_license_items ADD COLUMN IF NOT EXISTS verified_core_used INTEGER",
+    "ALTER TABLE vcf_ops_core_license_items ADD COLUMN IF NOT EXISTS project_id INTEGER REFERENCES projects(id)",
 ]
 
 app = FastAPI(title="VCF License Management")

@@ -212,3 +212,27 @@ export function deleteVcfOpsConnection(connectionId: number): Promise<void> {
 export function fetchVcfOpsInventory(connectionId: number): Promise<VcfOpsCoreLicenseItem[]> {
   return request<VcfOpsCoreLicenseItem[]>(`/vcf-ops/connections/${connectionId}/inventory`);
 }
+
+export function fetchVcfOpsItems(options?: {
+  assignableForProject?: number;
+  assignedToProject?: number;
+}): Promise<VcfOpsCoreLicenseItem[]> {
+  const params = new URLSearchParams();
+  if (options?.assignedToProject !== undefined) {
+    params.set("assigned_to_project", String(options.assignedToProject));
+  } else if (options?.assignableForProject !== undefined) {
+    params.set("assignable_for_project", String(options.assignableForProject));
+  }
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return request<VcfOpsCoreLicenseItem[]>(`/vcf-ops/items${query}`);
+}
+
+export function assignVcfOpsItemsToProject(
+  projectId: number,
+  itemIds: number[],
+): Promise<number[]> {
+  return request<number[]>(`/projects/${projectId}/assign-vcf-ops`, {
+    method: "POST",
+    body: JSON.stringify({ item_ids: itemIds }),
+  });
+}

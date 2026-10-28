@@ -23,6 +23,9 @@ class ProjectSummary(BaseModel):
     vcenter_count: int = 0
     vcenter_perpetual_quantity: int = 0
     vcenter_term_quantity: int = 0
+    vcf_license_count: int = 0
+    vcf_core_capacity: int = 0
+    vcf_core_used: int = 0
 
 
 class ProjectDetail(ProjectSummary):

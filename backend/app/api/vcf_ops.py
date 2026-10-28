@@ -48,11 +48,28 @@ def _sync_connection(connection: VcfOpsConnection, db: Session) -> None:
         db.commit()
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    db.query(VcfOpsCoreLicenseItem).filter(
-        VcfOpsCoreLicenseItem.connection_id == connection.id
-    ).delete()
+    # Upsert by license_key so an existing project assignment survives a
+    # re-sync instead of being wiped out by a delete-then-recreate.
+    existing_by_key = {
+        item.license_key: item
+        for item in db.query(VcfOpsCoreLicenseItem).filter(
+            VcfOpsCoreLicenseItem.connection_id == connection.id
+        )
+    }
+    seen_keys: set[str | None] = set()
     for row in rows:
-        db.add(VcfOpsCoreLicenseItem(connection_id=connection.id, **row))
+        license_key = row.get("license_key")
+        seen_keys.add(license_key)
+        existing = existing_by_key.get(license_key)
+        if existing is not None:
+            for key, value in row.items():
+                setattr(existing, key, value)
+        else:
+            db.add(VcfOpsCoreLicenseItem(connection_id=connection.id, **row))
+
+    for license_key, item in existing_by_key.items():
+        if license_key not in seen_keys:
+            db.delete(item)
 
     connection.status = "connected"
     connection.detected_version = detected_version
@@ -119,3 +136,22 @@ def delete_connection(connection_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="연결을 찾을 수 없습니다.")
     db.delete(connection)
     db.commit()
+
+
+@router.get("/items", response_model=list[VcfOpsCoreLicenseItemRead])
+def list_vcf_ops_items(
+    assignable_for_project: int | None = None,
+    assigned_to_project: int | None = None,
+    db: Session = Depends(get_db),
+):
+    query = db.query(VcfOpsCoreLicenseItem)
+    if assigned_to_project is not None:
+        query = query.filter(VcfOpsCoreLicenseItem.project_id == assigned_to_project)
+    elif assignable_for_project is not None:
+        query = query.filter(
+            (VcfOpsCoreLicenseItem.project_id.is_(None))
+            | (VcfOpsCoreLicenseItem.project_id == assignable_for_project)
+        )
+    return query.order_by(
+        VcfOpsCoreLicenseItem.connection_id, VcfOpsCoreLicenseItem.license_key
+    ).all()

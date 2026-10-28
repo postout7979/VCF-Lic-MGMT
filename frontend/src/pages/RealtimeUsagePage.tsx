@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { fetchProjects, fetchVCenterItems } from "../api/client";
+import { fetchProjects, fetchVCenterItems, fetchVcfOpsItems } from "../api/client";
 import LicenseTypeBadge from "../components/LicenseTypeBadge";
-import type { ProjectSummary, VCenterInventoryItem } from "../types";
+import type { ProjectSummary, VCenterInventoryItem, VcfOpsCoreLicenseItem } from "../types";
 
 function RealtimeUsagePage() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
@@ -10,6 +10,8 @@ function RealtimeUsagePage() {
   const [items, setItems] = useState<VCenterInventoryItem[]>([]);
   const [selectedVCenter, setSelectedVCenter] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [vcfItems, setVcfItems] = useState<VcfOpsCoreLicenseItem[]>([]);
+  const [vcfLoading, setVcfLoading] = useState(false);
 
   useEffect(() => {
     fetchProjects().then((data) => {
@@ -31,6 +33,24 @@ function RealtimeUsagePage() {
       })
       .finally(() => setLoading(false));
   }, [selectedProjectId]);
+
+  useEffect(() => {
+    if (selectedProjectId === null) {
+      setVcfItems([]);
+      return;
+    }
+    setVcfLoading(true);
+    fetchVcfOpsItems({ assignedToProject: selectedProjectId })
+      .then(setVcfItems)
+      .finally(() => setVcfLoading(false));
+  }, [selectedProjectId]);
+
+  const vcfStats = useMemo(() => {
+    const connectionCount = new Set(vcfItems.map((item) => item.connection_name ?? "(알 수 없음)")).size;
+    const coreCapacity = vcfItems.reduce((sum, item) => sum + (item.core_capacity ?? 0), 0);
+    const coreUsed = vcfItems.reduce((sum, item) => sum + (item.core_used ?? 0), 0);
+    return { connectionCount, licenseCount: vcfItems.length, coreCapacity, coreUsed };
+  }, [vcfItems]);
 
   const vcenterNames = useMemo(
     () => Array.from(new Set(items.map((item) => item.vcenter_name ?? "(알 수 없음)"))),
@@ -150,6 +170,80 @@ function RealtimeUsagePage() {
                 )}
               </div>
             </div>
+          )}
+
+          <h1 className="page-title" style={{ marginTop: 32 }}>
+            VCF Infra
+          </h1>
+
+          {vcfLoading ? (
+            <p className="text-muted">불러오는 중...</p>
+          ) : (
+            <>
+              <div className="stat-banner">
+                <div className="stat-card">
+                  <div className="stat-label">VCF 연결 수</div>
+                  <div className="stat-value">{vcfStats.connectionCount}</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">라이센스 항목 수</div>
+                  <div className="stat-value">{vcfStats.licenseCount}</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">할당 코어 합계</div>
+                  <div className="stat-value">{vcfStats.coreCapacity.toLocaleString()}</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">사용 중 코어 합계</div>
+                  <div className="stat-value">{vcfStats.coreUsed.toLocaleString()}</div>
+                </div>
+              </div>
+
+              {vcfItems.length === 0 ? (
+                <div className="card placeholder-card">
+                  이 프로젝트에 VCF 할당 정보가 없습니다. 설정 &gt; 프로젝트 탭에서 "VCF 할당"으로
+                  추가해주세요.
+                </div>
+              ) : (
+                <div className="card">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>VCF 연결</th>
+                        <th>Domain</th>
+                        <th>License Key</th>
+                        <th>License Type</th>
+                        <th>상태</th>
+                        <th>할당 코어 수</th>
+                        <th>사용 중 코어 수</th>
+                        <th>검증된 사용량</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {vcfItems.map((item) => {
+                        const mismatch =
+                          item.verified_core_used !== null &&
+                          item.verified_core_used !== item.core_used;
+                        return (
+                          <tr key={item.id}>
+                            <td>{item.connection_name ?? "-"}</td>
+                            <td>{item.domain_name ?? "-"}</td>
+                            <td>{item.license_key ?? "-"}</td>
+                            <td>{item.license_type ?? "-"}</td>
+                            <td>{item.license_status ?? "-"}</td>
+                            <td>{item.core_capacity ?? "-"}</td>
+                            <td>{item.core_used ?? "-"}</td>
+                            <td className={mismatch ? "error-text" : undefined}>
+                              {item.verified_core_used ?? "-"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
         </>
       )}

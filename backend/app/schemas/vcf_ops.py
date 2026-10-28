@@ -14,6 +14,7 @@ class VcfOpsCoreLicenseItemRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    connection_name: str | None = None
     license_key: str | None
     license_type: str | None
     license_status: str | None
@@ -22,6 +23,7 @@ class VcfOpsCoreLicenseItemRead(BaseModel):
     core_used: int | None
     verified_core_used: int | None
     collected_at: datetime
+    project_id: int | None
 
 
 class VcfOpsConnectionRead(BaseModel):

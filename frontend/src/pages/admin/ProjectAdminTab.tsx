@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { createProject, deleteProject, fetchProjects } from "../../api/client";
 import SupplierAssignModal from "../../components/SupplierAssignModal";
 import VCenterAssignModal from "../../components/VCenterAssignModal";
+import VcfOpsAssignModal from "../../components/VcfOpsAssignModal";
 import type { ProjectSummary } from "../../types";
 
 function ProjectAdminTab() {
@@ -12,6 +13,7 @@ function ProjectAdminTab() {
   const [error, setError] = useState<string | null>(null);
   const [supplierAssignTarget, setSupplierAssignTarget] = useState<ProjectSummary | null>(null);
   const [vcenterAssignTarget, setVCenterAssignTarget] = useState<ProjectSummary | null>(null);
+  const [vcfAssignTarget, setVcfAssignTarget] = useState<ProjectSummary | null>(null);
 
   function loadProjects() {
     fetchProjects().then(setProjects).catch(() => undefined);
@@ -78,6 +80,9 @@ function ProjectAdminTab() {
               <th colSpan={3} style={{ textAlign: "center" }}>
                 vCenter 데이터
               </th>
+              <th colSpan={3} style={{ textAlign: "center" }}>
+                VCF 데이터
+              </th>
               <th rowSpan={2}></th>
             </tr>
             <tr>
@@ -87,6 +92,9 @@ function ProjectAdminTab() {
               <th>vCenter 수</th>
               <th>Perpetual 수량</th>
               <th>Term 수량</th>
+              <th>라이센스 항목 수</th>
+              <th>할당 코어 수</th>
+              <th>사용 중 코어 수</th>
             </tr>
           </thead>
           <tbody>
@@ -100,6 +108,9 @@ function ProjectAdminTab() {
                 <td>{project.vcenter_count}</td>
                 <td>{project.vcenter_perpetual_quantity.toLocaleString()}</td>
                 <td>{project.vcenter_term_quantity.toLocaleString()}</td>
+                <td>{project.vcf_license_count}</td>
+                <td>{project.vcf_core_capacity.toLocaleString()}</td>
+                <td>{project.vcf_core_used.toLocaleString()}</td>
                 <td style={{ display: "flex", gap: 6 }}>
                   <button
                     className="btn btn-secondary"
@@ -112,6 +123,9 @@ function ProjectAdminTab() {
                     onClick={() => setVCenterAssignTarget(project)}
                   >
                     vCenter 할당
+                  </button>
+                  <button className="btn btn-secondary" onClick={() => setVcfAssignTarget(project)}>
+                    VCF 할당
                   </button>
                   <button className="btn btn-danger" onClick={() => handleDelete(project)}>
                     삭제
@@ -134,6 +148,13 @@ function ProjectAdminTab() {
         <VCenterAssignModal
           project={vcenterAssignTarget}
           onClose={() => setVCenterAssignTarget(null)}
+          onAssigned={loadProjects}
+        />
+      )}
+      {vcfAssignTarget && (
+        <VcfOpsAssignModal
+          project={vcfAssignTarget}
+          onClose={() => setVcfAssignTarget(null)}
           onAssigned={loadProjects}
         />
       )}

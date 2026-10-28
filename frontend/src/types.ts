@@ -29,6 +29,9 @@ export interface ProjectSummary {
   vcenter_count: number;
   vcenter_perpetual_quantity: number;
   vcenter_term_quantity: number;
+  vcf_license_count: number;
+  vcf_core_capacity: number;
+  vcf_core_used: number;
 }
 
 export interface ProjectDetail extends ProjectSummary {
@@ -116,6 +119,7 @@ export interface VcfOpsConnection {
 
 export interface VcfOpsCoreLicenseItem {
   id: number;
+  connection_name: string | null;
   license_key: string | null;
   license_type: string | null;
   license_status: string | null;
@@ -124,4 +128,5 @@ export interface VcfOpsCoreLicenseItem {
   core_used: number | null;
   verified_core_used: number | null;
   collected_at: string;
+  project_id: number | null;
 }

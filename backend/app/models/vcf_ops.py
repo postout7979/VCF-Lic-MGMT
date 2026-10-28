@@ -50,5 +50,10 @@ class VcfOpsCoreLicenseItem(Base):
     # matching product/unit-of-measure entry.
     verified_core_used: Mapped[int | None] = mapped_column(Integer, nullable=True)
     collected_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id"), nullable=True)
 
     connection = relationship("VcfOpsConnection", back_populates="core_license_items")
+
+    @property
+    def connection_name(self) -> str | None:
+        return self.connection.name if self.connection else None

@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.models.license_item import LicenseItem
 from app.models.project import Project
 from app.models.vcenter import VCenterInventoryItem
+from app.models.vcf_ops import VcfOpsCoreLicenseItem
 from app.schemas.license_item import AssignItemsRequest
 from app.schemas.project import ProjectCreate, ProjectDetail, ProjectSummary
 
@@ -57,6 +58,24 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         .scalar()
         or 0
     )
+    vcf_license_count = (
+        db.query(func.count(VcfOpsCoreLicenseItem.id))
+        .filter(VcfOpsCoreLicenseItem.project_id == project.id)
+        .scalar()
+        or 0
+    )
+    vcf_core_capacity = (
+        db.query(func.coalesce(func.sum(VcfOpsCoreLicenseItem.core_capacity), 0))
+        .filter(VcfOpsCoreLicenseItem.project_id == project.id)
+        .scalar()
+        or 0
+    )
+    vcf_core_used = (
+        db.query(func.coalesce(func.sum(VcfOpsCoreLicenseItem.core_used), 0))
+        .filter(VcfOpsCoreLicenseItem.project_id == project.id)
+        .scalar()
+        or 0
+    )
     return ProjectSummary(
         id=project.id,
         name=project.name,
@@ -67,6 +86,9 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         vcenter_count=vcenter_count,
         vcenter_perpetual_quantity=int(vcenter_perpetual_quantity),
         vcenter_term_quantity=int(vcenter_term_quantity),
+        vcf_license_count=int(vcf_license_count),
+        vcf_core_capacity=int(vcf_core_capacity),
+        vcf_core_used=int(vcf_core_used),
         item_count=item_count,
     )
 
@@ -137,6 +159,9 @@ def delete_project(project_id: int, db: Session = Depends(get_db)):
     db.query(VCenterInventoryItem).filter(VCenterInventoryItem.project_id == project_id).update(
         {"project_id": None}
     )
+    db.query(VcfOpsCoreLicenseItem).filter(VcfOpsCoreLicenseItem.project_id == project_id).update(
+        {"project_id": None}
+    )
     db.delete(project)
     db.commit()
 
@@ -179,6 +204,24 @@ def assign_vcenter_items(
     assigned = (
         db.query(VCenterInventoryItem.id)
         .filter(VCenterInventoryItem.project_id == project_id)
+        .all()
+    )
+    return [row[0] for row in assigned]
+
+
+@router.post("/{project_id}/assign-vcf-ops", response_model=list[int])
+def assign_vcf_ops_items(
+    project_id: int, payload: AssignItemsRequest, db: Session = Depends(get_db)
+):
+    project = db.get(Project, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+
+    _reconcile_assignment(db, VcfOpsCoreLicenseItem, project_id, set(payload.item_ids))
+
+    assigned = (
+        db.query(VcfOpsCoreLicenseItem.id)
+        .filter(VcfOpsCoreLicenseItem.project_id == project_id)
         .all()
     )
     return [row[0] for row in assigned]
