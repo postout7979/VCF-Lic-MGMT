@@ -159,6 +159,17 @@ export const SECURITY_QUESTIONS: string[] = [
   "태어난 도시는 어디입니까?",
 ];
 
+export interface UserApplication {
+  id: number;
+  username: string;
+  password: string;
+  email: string;
+  security_answer_1: string;
+  security_answer_2: string;
+  security_answer_3: string;
+  created_at: string;
+}
+
 export interface SmtpSettings {
   host: string;
   port: number;

@@ -4,6 +4,7 @@ import { Navigate, useLocation } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
+import SignupRequestModal from "../components/SignupRequestModal";
 
 function LoginPage() {
   const { user, loading, login } = useAuth();
@@ -13,6 +14,7 @@ function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showSignupRequest, setShowSignupRequest] = useState(false);
 
   if (loading) {
     return <p className="text-muted" style={{ padding: 24 }}>불러오는 중...</p>;
@@ -86,9 +88,20 @@ function LoginPage() {
         >
           비밀번호를 잊으셨나요?
         </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ width: "100%", marginTop: 10 }}
+          onClick={() => setShowSignupRequest(true)}
+        >
+          사용자 신규 신청
+        </button>
       </form>
       {showForgotPassword && (
         <ForgotPasswordModal onClose={() => setShowForgotPassword(false)} />
+      )}
+      {showSignupRequest && (
+        <SignupRequestModal onClose={() => setShowSignupRequest(false)} />
       )}
     </div>
   );

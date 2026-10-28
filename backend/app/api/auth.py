@@ -10,6 +10,7 @@ from app.core.auth import generate_session_token, get_current_user, require_admi
 from app.core.database import get_db
 from app.core.security_questions import SECURITY_QUESTIONS
 from app.models.user import User
+from app.models.user_application import UserApplication
 from app.schemas.auth import (
     AdminResetPasswordRequest,
     CurrentUser,
@@ -19,9 +20,11 @@ from app.schemas.auth import (
     LoginResponse,
     RecoveryKeyResponse,
     RequestOtpRequest,
+    UpdateMeRequest,
     VerifyOtpRequest,
     VerifySecurityAnswersRequest,
 )
+from app.schemas.user_application import UserApplicationCreate
 from app.services.email_service import EmailNotConfiguredError, send_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -61,6 +64,58 @@ def logout(user: User = Depends(get_current_user), db: Session = Depends(get_db)
 @router.get("/me", response_model=CurrentUser)
 def me(user: User = Depends(get_current_user)):
     return CurrentUser(**_current_user_fields(user))
+
+
+@router.patch("/me", response_model=CurrentUser)
+def update_me(
+    payload: UpdateMeRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if payload.password is not None:
+        if not payload.password:
+            raise HTTPException(status_code=400, detail="비밀번호를 입력해주세요.")
+        user.password = payload.password
+    if payload.email is not None:
+        email = payload.email.strip()
+        if not email:
+            raise HTTPException(status_code=400, detail="이메일을 입력해주세요.")
+        user.email = email
+    db.commit()
+    db.refresh(user)
+    return CurrentUser(**_current_user_fields(user))
+
+
+@router.post("/signup-request", status_code=201)
+def signup_request(payload: UserApplicationCreate, db: Session = Depends(get_db)):
+    username = payload.username.strip()
+    if not username:
+        raise HTTPException(status_code=400, detail="Username을 입력해주세요.")
+    if not payload.password:
+        raise HTTPException(status_code=400, detail="Password를 입력해주세요.")
+    if not payload.email.strip():
+        raise HTTPException(status_code=400, detail="Email을 입력해주세요.")
+    if (
+        not payload.security_answer_1.strip()
+        or not payload.security_answer_2.strip()
+        or not payload.security_answer_3.strip()
+    ):
+        raise HTTPException(status_code=400, detail="비밀번호 초기화 질문 3개에 모두 답변해주세요.")
+    if db.query(User).filter(User.username == username).first():
+        raise HTTPException(status_code=409, detail="같은 Username이 이미 존재합니다.")
+    if db.query(UserApplication).filter(UserApplication.username == username).first():
+        raise HTTPException(status_code=409, detail="이미 동일한 Username으로 신청이 접수되어 있습니다.")
+
+    application = UserApplication(
+        username=username,
+        password=payload.password,
+        email=payload.email.strip(),
+        security_answer_1=payload.security_answer_1.strip(),
+        security_answer_2=payload.security_answer_2.strip(),
+        security_answer_3=payload.security_answer_3.strip(),
+    )
+    db.add(application)
+    db.commit()
 
 
 @router.post("/admin/recovery-key", response_model=RecoveryKeyResponse)

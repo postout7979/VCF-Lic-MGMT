@@ -5,6 +5,7 @@ import LegacyInfraTab from "./admin/LegacyInfraTab";
 import ProjectAdminTab from "./admin/ProjectAdminTab";
 import SmtpTab from "./admin/SmtpTab";
 import SupplierDataTab from "./admin/SupplierDataTab";
+import UserApplicationsTab from "./admin/UserApplicationsTab";
 import UsersTab from "./admin/UsersTab";
 import VcfOpsTab from "./admin/VcfOpsTab";
 
@@ -15,6 +16,7 @@ const TABS = [
   { key: "legacy-infra", label: "Legacy Infra" },
   { key: "vcf-ops", label: "VCF Infra" },
   { key: "users", label: "사용자" },
+  { key: "user-applications", label: "사용자 승인" },
   { key: "smtp", label: "SMTP" },
 ] as const;
 
@@ -43,6 +45,7 @@ function AdminPage() {
       {activeTab === "legacy-infra" && <LegacyInfraTab />}
       {activeTab === "vcf-ops" && <VcfOpsTab />}
       {activeTab === "users" && <UsersTab />}
+      {activeTab === "user-applications" && <UserApplicationsTab />}
       {activeTab === "smtp" && <SmtpTab />}
     </div>
   );

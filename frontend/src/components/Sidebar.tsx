@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
+import SelfAccountModal from "./SelfAccountModal";
 
 const NAV_ITEMS = [
   { to: "/license-overview", label: "라이센스 종합 현황" },
@@ -15,6 +17,7 @@ const SETTINGS_ITEM = { to: "/admin", label: "설정" };
 function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [showAccountModal, setShowAccountModal] = useState(false);
 
   async function handleLogout() {
     await logout();
@@ -23,6 +26,24 @@ function Sidebar() {
 
   return (
     <nav className="sidebar">
+      <div className="sidebar-user">
+        <div className="sidebar-user-name">
+          <button
+            type="button"
+            className="sidebar-user-name-btn"
+            onClick={() => setShowAccountModal(true)}
+          >
+            {user?.username}
+          </button>
+          {user && user.project_names.length > 0 && (
+            <span className="sidebar-user-project">{user.project_names.join(", ")}</span>
+          )}
+        </div>
+        <button className="sidebar-logout" onClick={handleLogout}>
+          로그아웃
+        </button>
+      </div>
+
       <p className="sidebar-title">VCF License Management</p>
       {NAV_ITEMS.map((item) => (
         <NavLink
@@ -43,17 +64,10 @@ function Sidebar() {
           {SETTINGS_ITEM.label}
         </NavLink>
       )}
-      <div className="sidebar-user">
-        <div className="sidebar-user-name">
-          {user?.username}
-          {user && user.project_names.length > 0 && (
-            <span className="sidebar-user-project">{user.project_names.join(", ")}</span>
-          )}
-        </div>
-        <button className="sidebar-logout" onClick={handleLogout}>
-          로그아웃
-        </button>
-      </div>
+
+      {showAccountModal && (
+        <SelfAccountModal onClose={() => setShowAccountModal(false)} />
+      )}
     </nav>
   );
 }

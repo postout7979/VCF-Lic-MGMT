@@ -10,6 +10,7 @@ import type {
   UploadBatch,
   UploadResult,
   User,
+  UserApplication,
   VCenterConnection,
   VCenterInventoryItem,
   VCenterVersionHint,
@@ -66,6 +67,39 @@ export function logout(): Promise<void> {
 
 export function fetchMe(): Promise<CurrentUser> {
   return request<CurrentUser>("/auth/me");
+}
+
+export function updateMe(payload: { password?: string; email?: string }): Promise<CurrentUser> {
+  return request<CurrentUser>("/auth/me", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function signupRequest(payload: {
+  username: string;
+  password: string;
+  email: string;
+  security_answer_1: string;
+  security_answer_2: string;
+  security_answer_3: string;
+}): Promise<void> {
+  return request<void>("/auth/signup-request", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchUserApplications(): Promise<UserApplication[]> {
+  return request<UserApplication[]>("/user-applications");
+}
+
+export function approveUserApplication(applicationId: number): Promise<User> {
+  return request<User>(`/user-applications/${applicationId}/approve`, { method: "POST" });
+}
+
+export function rejectUserApplication(applicationId: number): Promise<void> {
+  return request<void>(`/user-applications/${applicationId}`, { method: "DELETE" });
 }
 
 export function generateRecoveryKey(): Promise<{ recovery_key: string }> {

@@ -55,3 +55,8 @@ class VerifySecurityAnswersRequest(BaseModel):
     answer_2: str
     answer_3: str
     new_password: str
+
+
+class UpdateMeRequest(BaseModel):
+    password: str | None = None
+    email: str | None = None
