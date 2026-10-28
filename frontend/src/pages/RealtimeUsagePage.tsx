@@ -4,6 +4,7 @@ import { fetchProjects, fetchVCenterItems, fetchVcfOpsItems } from "../api/clien
 import ListControls from "../components/ListControls";
 import LicenseTypeBadge from "../components/LicenseTypeBadge";
 import Pagination from "../components/Pagination";
+import SummaryBar from "../components/SummaryBar";
 import { useListControls } from "../hooks/useListControls";
 import type { ProjectSummary, VCenterInventoryItem, VcfOpsCoreLicenseItem } from "../types";
 
@@ -143,29 +144,6 @@ function RealtimeUsagePage() {
           <p className="text-muted">불러오는 중...</p>
         ) : (
           <>
-            <div className="card summary-card">
-              <table className="summary-table">
-                <thead>
-                  <tr>
-                    <th>vCenter 수</th>
-                    <th>Cluster 수</th>
-                    <th>Host 수</th>
-                    <th>Perpetual 수량</th>
-                    <th>Term 수량</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>{stats.vcenterCount}</td>
-                    <td>{stats.clusterCount}</td>
-                    <td>{stats.hostCount}</td>
-                    <td>{stats.perpetualQuantity.toLocaleString()}</td>
-                    <td>{stats.termQuantity.toLocaleString()}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
             {items.length === 0 ? (
               <div className="card placeholder-card">
                 이 프로젝트에 vCenter 할당 정보가 없습니다. 설정 &gt; 프로젝트 탭에서 "vCenter
@@ -173,6 +151,15 @@ function RealtimeUsagePage() {
               </div>
             ) : (
               <div className="card">
+                <SummaryBar
+                  items={[
+                    { label: "vCenter 수", value: stats.vcenterCount },
+                    { label: "Cluster 수", value: stats.clusterCount },
+                    { label: "Host 수", value: stats.hostCount },
+                    { label: "Perpetual 수량", value: stats.perpetualQuantity },
+                    { label: "Term 수량", value: stats.termQuantity },
+                  ]}
+                />
                 <ListControls
                   search={legacyList.search}
                   onSearchChange={legacyList.setSearch}
@@ -224,27 +211,6 @@ function RealtimeUsagePage() {
         <p className="text-muted">불러오는 중...</p>
       ) : (
         <>
-          <div className="card summary-card">
-            <table className="summary-table">
-              <thead>
-                <tr>
-                  <th>VCF 연결 수</th>
-                  <th>라이센스 항목 수</th>
-                  <th>할당 코어 합계</th>
-                  <th>사용 중 코어 합계</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>{vcfStats.connectionCount}</td>
-                  <td>{vcfStats.licenseCount}</td>
-                  <td>{vcfStats.coreCapacity.toLocaleString()}</td>
-                  <td>{vcfStats.coreUsed.toLocaleString()}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
           {vcfItems.length === 0 ? (
             <div className="card placeholder-card">
               이 프로젝트에 VCF 할당 정보가 없습니다. 설정 &gt; 프로젝트 탭에서 "VCF 할당"으로
@@ -252,6 +218,14 @@ function RealtimeUsagePage() {
             </div>
           ) : (
             <div className="card">
+              <SummaryBar
+                items={[
+                  { label: "VCF 연결 수", value: vcfStats.connectionCount },
+                  { label: "라이센스 항목 수", value: vcfStats.licenseCount },
+                  { label: "할당 코어 합계", value: vcfStats.coreCapacity },
+                  { label: "사용 중 코어 합계", value: vcfStats.coreUsed },
+                ]}
+              />
               <ListControls
                 search={vcfList.search}
                 onSearchChange={vcfList.setSearch}

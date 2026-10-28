@@ -4,6 +4,7 @@ import { fetchProjectDetail, fetchProjects } from "../../api/client";
 import ListControls from "../../components/ListControls";
 import LicenseTypeBadge from "../../components/LicenseTypeBadge";
 import Pagination from "../../components/Pagination";
+import SummaryBar from "../../components/SummaryBar";
 import { useListControls } from "../../hooks/useListControls";
 import type { ProjectDetail, ProjectSummary } from "../../types";
 
@@ -77,19 +78,13 @@ function ProjectsListView() {
         </div>
       ) : (
         <>
-          <div className="card" style={{ marginBottom: 20 }}>
-            <h2 style={{ marginTop: 0, color: "var(--color-primary-dark)" }}>{detail.name}</h2>
-            <div className="sum-row" style={{ fontSize: 14 }}>
-              <span>Perpetual 합계</span>
-              <span className="sum-value">{detail.perpetual_quantity.toLocaleString()}</span>
-            </div>
-            <div className="sum-row" style={{ fontSize: 14 }}>
-              <span>Subscription 합계</span>
-              <span className="sum-value">{detail.subscription_quantity.toLocaleString()}</span>
-            </div>
-          </div>
-
           <div className="card">
+            <SummaryBar
+              items={[
+                { label: "Perpetual 합계", value: detail.perpetual_quantity },
+                { label: "Subscription 합계", value: detail.subscription_quantity },
+              ]}
+            />
             <ListControls
               search={list.search}
               onSearchChange={list.setSearch}

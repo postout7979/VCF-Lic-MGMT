@@ -309,19 +309,6 @@ select:focus {
   outline-offset: 1px;
 }
 
-.sum-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  margin-bottom: 4px;
-  color: var(--color-text-muted);
-}
-
-.sum-value {
-  font-weight: 700;
-  color: var(--color-text);
-}
-
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -497,29 +484,33 @@ select:focus {
   align-items: center;
 }
 
-/* summary table (replaces the old stat-card banner grid with a simple,
-   console-style metrics table: labels as headers, one value row below) */
+/* summary bar: borderless label/value pairs shown above a list's search bar */
 
-.summary-card {
-  margin-bottom: 20px;
-  padding: 0;
-  overflow: hidden;
+.summary-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 16px;
 }
 
-.summary-table {
-  margin: 0;
+.summary-bar-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
 }
 
-.summary-table th {
-  text-align: center;
+.summary-bar-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.summary-table td {
-  text-align: center;
-  font-size: 18px;
+.summary-bar-value {
+  font-size: 15px;
   font-weight: 700;
   color: var(--color-text);
-  border-bottom: none;
 }
 
 /* overview dashboard: KPI stat tiles + donut charts */

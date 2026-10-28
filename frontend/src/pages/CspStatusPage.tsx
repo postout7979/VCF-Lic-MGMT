@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { fetchCspData, fetchProjects } from "../api/client";
 import ListControls from "../components/ListControls";
 import Pagination from "../components/Pagination";
+import SummaryBar from "../components/SummaryBar";
 import { useListControls } from "../hooks/useListControls";
 import type { CspLicenseItem, ProjectSummary } from "../types";
 
@@ -37,6 +38,15 @@ function CspStatusPage() {
 
   const folderCount = new Set(items.map((item) => item.folder_name ?? "(알 수 없음)")).size;
 
+  const quantityByUnit = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const item of items) {
+      const unit = item.unit ?? "(알 수 없음)";
+      totals.set(unit, (totals.get(unit) ?? 0) + item.quantity);
+    }
+    return Array.from(totals.entries());
+  }, [items]);
+
   const list = useListControls(items, (item, query) =>
     [item.folder_name, item.product_name, item.license_key]
       .filter(Boolean)
@@ -68,23 +78,6 @@ function CspStatusPage() {
         <div className="card placeholder-card">프로젝트를 먼저 생성해주세요.</div>
       ) : (
         <>
-          <div className="card summary-card">
-            <table className="summary-table">
-              <thead>
-                <tr>
-                  <th>Folder 수</th>
-                  <th>라이센스 항목 수</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>{folderCount}</td>
-                  <td>{items.length}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
           {items.length === 0 ? (
             <div className="card placeholder-card">
               이 프로젝트에 CSP 할당 정보가 없습니다. 설정 &gt; 프로젝트 탭에서 "CSP 할당"으로
@@ -92,6 +85,16 @@ function CspStatusPage() {
             </div>
           ) : (
             <div className="card">
+              <SummaryBar
+                items={[
+                  { label: "Folder 수", value: folderCount },
+                  { label: "라이센스 항목 수", value: items.length },
+                  ...quantityByUnit.map(([unit, qty]) => ({
+                    label: `Quantity (${unit})`,
+                    value: qty,
+                  })),
+                ]}
+              />
               <ListControls
                 search={list.search}
                 onSearchChange={list.setSearch}
