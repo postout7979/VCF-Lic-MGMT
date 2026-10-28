@@ -1,19 +1,19 @@
 #!/bin/bash
 # First-boot guest customization: reads the vApp Properties defined in
 # ../ovf/product-section.xml (delivered via VMware Tools' guestinfo.*
-# namespace) and applies them to the running Photon OS guest.
+# namespace) and applies them to the running Ubuntu Server guest.
 #
 # Idempotent: exits immediately if /etc/.ovf-customized already exists,
 # so it only ever does anything on the VM's true first boot after a
 # fresh OVA deployment. Intended to run via ovf-customize.service
-# (see that file in this same directory) before networkd brings the
-# interface up with DHCP.
+# (see that file in this same directory) before networking comes up.
 #
 # Requires open-vm-tools (specifically `vmware-rpctool`) to be installed
 # in the guest image - see ../build/build-ova.sh.
 #
-# NOT tested against a real deployment - see appliance/README.md for
-# what's been verified vs. what you need to validate yourself.
+# Built and tested on an Ubuntu 26.04 Server (minimal) image - see
+# appliance/README.md for exactly what's been verified vs. what you
+# still need to validate on a real vSphere deployment.
 
 set -euo pipefail
 
@@ -69,7 +69,7 @@ netmask_to_prefix() {
   echo "$prefix"
 }
 
-# --- static network (systemd-networkd, Photon OS's default) -------------
+# --- static network (netplan, Ubuntu's default network config frontend) -
 if [ -n "$IP_VAL" ]; then
   IFACE="$(ls /sys/class/net | grep -v '^lo$' | head -n1)"
   if [ -z "$IFACE" ]; then
@@ -79,30 +79,43 @@ if [ -n "$IP_VAL" ]; then
     log "configuring $IFACE as ${IP_VAL}/${PREFIX}, gateway ${GATEWAY_VAL:-none}"
 
     {
-      echo "[Match]"
-      echo "Name=$IFACE"
-      echo
-      echo "[Network]"
-      echo "Address=${IP_VAL}/${PREFIX}"
-      [ -n "$GATEWAY_VAL" ] && echo "Gateway=$GATEWAY_VAL"
-      if [ -n "$DNS_VAL" ]; then
-        IFS=',' read -ra dns_servers <<<"$DNS_VAL"
-        for d in "${dns_servers[@]}"; do echo "DNS=$d"; done
+      echo "network:"
+      echo "  version: 2"
+      echo "  ethernets:"
+      echo "    $IFACE:"
+      echo "      dhcp4: false"
+      echo "      addresses: [${IP_VAL}/${PREFIX}]"
+      if [ -n "$GATEWAY_VAL" ]; then
+        echo "      routes:"
+        echo "        - to: default"
+        echo "          via: $GATEWAY_VAL"
       fi
-      if [ -n "$DNSSEARCH_VAL" ]; then
-        IFS=',' read -ra search_domains <<<"$DNSSEARCH_VAL"
-        printf 'Domains='
-        for s in "${search_domains[@]}"; do printf '%s ' "$s"; done
-        echo
+      if [ -n "$DNS_VAL" ] || [ -n "$DNSSEARCH_VAL" ]; then
+        echo "      nameservers:"
+        if [ -n "$DNS_VAL" ]; then
+          IFS=',' read -ra dns_servers <<<"$DNS_VAL"
+          printf '        addresses: ['
+          printf '%s' "${dns_servers[0]}"
+          for d in "${dns_servers[@]:1}"; do printf ', %s' "$d"; done
+          echo ']'
+        fi
+        if [ -n "$DNSSEARCH_VAL" ]; then
+          IFS=',' read -ra search_domains <<<"$DNSSEARCH_VAL"
+          printf '        search: ['
+          printf '%s' "${search_domains[0]}"
+          for s in "${search_domains[@]:1}"; do printf ', %s' "$s"; done
+          echo ']'
+        fi
       fi
-    } > /etc/systemd/network/10-ovf-static.network
-
-    # Remove any DHCP config that would otherwise race with this one.
-    rm -f /etc/systemd/network/10-dhcp-en.network 2>/dev/null || true
+    } > /etc/netplan/90-ovf-static.yaml
+    chmod 600 /etc/netplan/90-ovf-static.yaml
+    # The image's default DHCP config (01-netcfg.yaml) would otherwise
+    # conflict with this static one.
+    rm -f /etc/netplan/01-netcfg.yaml
   fi
 fi
 
-# --- NTP (systemd-timesyncd, Photon OS's default) ------------------------
+# --- NTP (systemd-timesyncd, Ubuntu's default) ---------------------------
 if [ -n "$NTP_VAL" ]; then
   log "setting NTP servers: $NTP_VAL"
   NTP_LINE="$(echo "$NTP_VAL" | tr ',' ' ')"
@@ -124,5 +137,5 @@ touch "$MARKER"
 log "customization complete"
 
 # Apply network/NTP changes now rather than waiting for the next boot.
-systemctl restart systemd-networkd 2>/dev/null || true
+netplan apply 2>/dev/null || true
 systemctl restart systemd-timesyncd 2>/dev/null || true
