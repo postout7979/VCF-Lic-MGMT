@@ -25,10 +25,7 @@ function RealtimeUsagePage() {
   const [vcfLoading, setVcfLoading] = useState(false);
 
   useEffect(() => {
-    fetchProjects().then((data) => {
-      setProjects(data);
-      if (data.length > 0) setSelectedProjectId(data[0].id);
-    });
+    fetchProjects().then(setProjects);
   }, []);
 
   useEffect(() => {
@@ -109,7 +106,7 @@ function RealtimeUsagePage() {
               value={selectedProjectId ?? ""}
               onChange={(e) => setSelectedProjectId(e.target.value ? Number(e.target.value) : null)}
             >
-              {projects.length === 0 && <option value="">생성된 프로젝트가 없습니다</option>}
+              <option value="">{projects.length === 0 ? "생성된 프로젝트가 없습니다" : "선택 없음"}</option>
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.name}
@@ -137,8 +134,10 @@ function RealtimeUsagePage() {
         {INFRA_OPTIONS.find((option) => option.value === infraType)?.label}
       </h1>
 
-      {selectedProjectId === null ? (
+      {projects.length === 0 ? (
         <div className="card placeholder-card">프로젝트를 먼저 생성해주세요.</div>
+      ) : selectedProjectId === null ? (
+        <div className="card placeholder-card">프로젝트를 선택해주세요.</div>
       ) : infraType === "legacy" ? (
         loading ? (
           <p className="text-muted">불러오는 중...</p>

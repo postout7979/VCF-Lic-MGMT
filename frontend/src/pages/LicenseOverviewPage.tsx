@@ -18,7 +18,7 @@ function LicenseOverviewPage() {
 
   useEffect(() => {
     fetchProjects()
-      .then(setProjects)
+      .then((data) => setProjects([...data].sort((a, b) => a.name.localeCompare(b.name))))
       .finally(() => setLoading(false));
   }, []);
 
@@ -128,7 +128,6 @@ function LicenseOverviewPage() {
                 <thead>
                   <tr>
                     <th rowSpan={2}>프로젝트명</th>
-                    <th rowSpan={2}>생성일</th>
                     <th colSpan={3} style={{ textAlign: "center" }}>
                       공급자 데이터
                     </th>
@@ -157,7 +156,6 @@ function LicenseOverviewPage() {
                   {list.pageItems.map((project) => (
                     <tr key={project.id}>
                       <td>{project.name}</td>
-                      <td>{new Date(project.created_at).toLocaleDateString()}</td>
                       <td>{project.item_count}</td>
                       <td>{project.perpetual_quantity.toLocaleString()}</td>
                       <td>{project.subscription_quantity.toLocaleString()}</td>
