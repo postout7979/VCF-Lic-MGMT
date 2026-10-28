@@ -100,12 +100,11 @@ function RealtimeUsagePage() {
 
   return (
     <div>
-      <div className="card" style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: 20 }}>
         <div className="form-row" style={{ marginBottom: 0 }}>
           <div className="form-field" style={{ maxWidth: 320 }}>
             <label>프로젝트 선택</label>
             <select
-              className="select-plain"
               value={selectedProjectId ?? ""}
               onChange={(e) => setSelectedProjectId(e.target.value ? Number(e.target.value) : null)}
             >
