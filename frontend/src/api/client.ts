@@ -1,4 +1,6 @@
 import type {
+  CspLicenseItem,
+  CspLicenseItemPage,
   LicenseItem,
   LicenseItemPage,
   ProjectDetail,
@@ -211,6 +213,78 @@ export function deleteVcfOpsConnection(connectionId: number): Promise<void> {
 
 export function fetchVcfOpsInventory(connectionId: number): Promise<VcfOpsCoreLicenseItem[]> {
   return request<VcfOpsCoreLicenseItem[]>(`/vcf-ops/connections/${connectionId}/inventory`);
+}
+
+export function uploadCspData(file: File, uploadName: string): Promise<UploadResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_name", uploadName);
+  return request<UploadResult>("/csp-data/upload", {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export function fetchCspData(options?: {
+  unassignedOnly?: boolean;
+  assignableForProject?: number;
+  assignedToProject?: number;
+}): Promise<CspLicenseItem[]> {
+  const params = new URLSearchParams();
+  if (options?.assignedToProject !== undefined) {
+    params.set("assigned_to_project", String(options.assignedToProject));
+  } else if (options?.assignableForProject !== undefined) {
+    params.set("assignable_for_project", String(options.assignableForProject));
+  } else if (options?.unassignedOnly) {
+    params.set("unassigned_only", "true");
+  }
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return request<CspLicenseItem[]>(`/csp-data${query}`);
+}
+
+export function searchCspData(params: {
+  page: number;
+  pageSize: number;
+  searchField?: string;
+  searchQuery?: string;
+  sortField?: string;
+  sortOrder?: "asc" | "desc";
+}): Promise<CspLicenseItemPage> {
+  const query = new URLSearchParams({
+    page: String(params.page),
+    page_size: String(params.pageSize),
+  });
+  if (params.searchField && params.searchQuery) {
+    query.set("search_field", params.searchField);
+    query.set("search_query", params.searchQuery);
+  }
+  if (params.sortField) {
+    query.set("sort_field", params.sortField);
+    query.set("sort_order", params.sortOrder ?? "asc");
+  }
+  return request<CspLicenseItemPage>(`/csp-data/search?${query.toString()}`);
+}
+
+export function deleteAllCspData(): Promise<void> {
+  return request<void>("/csp-data", { method: "DELETE" });
+}
+
+export function fetchCspUploadBatches(): Promise<UploadBatch[]> {
+  return request<UploadBatch[]>("/csp-data/uploads");
+}
+
+export function deleteCspUploadBatches(uploadNames: string[]): Promise<void> {
+  return request<void>("/csp-data/uploads", {
+    method: "DELETE",
+    body: JSON.stringify({ upload_names: uploadNames }),
+  });
+}
+
+export function assignCspItemsToProject(projectId: number, itemIds: number[]): Promise<number[]> {
+  return request<number[]>(`/projects/${projectId}/assign-csp`, {
+    method: "POST",
+    body: JSON.stringify({ item_ids: itemIds }),
+  });
 }
 
 export function fetchVcfOpsItems(options?: {

@@ -32,6 +32,7 @@ export interface ProjectSummary {
   vcf_license_count: number;
   vcf_core_capacity: number;
   vcf_core_used: number;
+  csp_license_count: number;
 }
 
 export interface ProjectDetail extends ProjectSummary {
@@ -130,3 +131,30 @@ export interface VcfOpsCoreLicenseItem {
   collected_at: string;
   project_id: number | null;
 }
+
+export interface CspLicenseItem {
+  id: number;
+  upload_name: string;
+  license_key: string | null;
+  product_name: string | null;
+  quantity: number;
+  unit: string | null;
+  folder_name: string | null;
+  contract_end_date: string | null;
+  project_id: number | null;
+}
+
+export interface CspLicenseItemPage {
+  items: CspLicenseItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export const CSP_SEARCHABLE_FIELDS: { value: string; label: string }[] = [
+  { value: "upload_name", label: "업로드 이름" },
+  { value: "license_key", label: "License Key" },
+  { value: "product_name", label: "Product Name" },
+  { value: "folder_name", label: "Folder Name" },
+];

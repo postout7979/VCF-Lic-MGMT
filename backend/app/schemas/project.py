@@ -26,6 +26,7 @@ class ProjectSummary(BaseModel):
     vcf_license_count: int = 0
     vcf_core_capacity: int = 0
     vcf_core_used: int = 0
+    csp_license_count: int = 0
 
 
 class ProjectDetail(ProjectSummary):

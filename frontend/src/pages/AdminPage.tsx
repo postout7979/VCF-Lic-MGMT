@@ -1,13 +1,15 @@
 import { useState } from "react";
 
+import CspDataTab from "./admin/CspDataTab";
 import LegacyInfraTab from "./admin/LegacyInfraTab";
 import ProjectAdminTab from "./admin/ProjectAdminTab";
 import SupplierDataTab from "./admin/SupplierDataTab";
 import VcfOpsTab from "./admin/VcfOpsTab";
 
 const TABS = [
-  { key: "supplier-data", label: "공급자 데이터" },
   { key: "project", label: "프로젝트" },
+  { key: "supplier-data", label: "공급자 데이터" },
+  { key: "csp-data", label: "CSP 현황" },
   { key: "legacy-infra", label: "Legacy Infra" },
   { key: "vcf-ops", label: "VCF" },
 ] as const;
@@ -15,7 +17,7 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 function AdminPage() {
-  const [activeTab, setActiveTab] = useState<TabKey>("supplier-data");
+  const [activeTab, setActiveTab] = useState<TabKey>("project");
 
   return (
     <div>
@@ -31,8 +33,9 @@ function AdminPage() {
           </button>
         ))}
       </div>
-      {activeTab === "supplier-data" && <SupplierDataTab />}
       {activeTab === "project" && <ProjectAdminTab />}
+      {activeTab === "supplier-data" && <SupplierDataTab />}
+      {activeTab === "csp-data" && <CspDataTab />}
       {activeTab === "legacy-infra" && <LegacyInfraTab />}
       {activeTab === "vcf-ops" && <VcfOpsTab />}
     </div>

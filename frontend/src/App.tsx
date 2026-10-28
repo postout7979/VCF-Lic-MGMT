@@ -2,8 +2,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import Sidebar from "./components/Sidebar";
 import AdminPage from "./pages/AdminPage";
+import CspStatusPage from "./pages/CspStatusPage";
 import LicenseOverviewPage from "./pages/LicenseOverviewPage";
-import ProjectDetailView from "./pages/projects/ProjectDetailView";
 import ProjectsListView from "./pages/projects/ProjectsListView";
 import RealtimeUsagePage from "./pages/RealtimeUsagePage";
 
@@ -26,7 +26,15 @@ function App() {
               </div>
             }
           />
-          <Route path="/projects/:id" element={<ProjectDetailView />} />
+          <Route
+            path="/csp-status"
+            element={
+              <div>
+                <h1 className="page-title">CSP 현황</h1>
+                <CspStatusPage />
+              </div>
+            }
+          />
         </Routes>
       </main>
     </div>

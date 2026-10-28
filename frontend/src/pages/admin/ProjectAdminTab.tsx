@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { createProject, deleteProject, fetchProjects } from "../../api/client";
+import CspAssignModal from "../../components/CspAssignModal";
 import SupplierAssignModal from "../../components/SupplierAssignModal";
 import VCenterAssignModal from "../../components/VCenterAssignModal";
 import VcfOpsAssignModal from "../../components/VcfOpsAssignModal";
@@ -14,6 +15,7 @@ function ProjectAdminTab() {
   const [supplierAssignTarget, setSupplierAssignTarget] = useState<ProjectSummary | null>(null);
   const [vcenterAssignTarget, setVCenterAssignTarget] = useState<ProjectSummary | null>(null);
   const [vcfAssignTarget, setVcfAssignTarget] = useState<ProjectSummary | null>(null);
+  const [cspAssignTarget, setCspAssignTarget] = useState<ProjectSummary | null>(null);
 
   function loadProjects() {
     fetchProjects().then(setProjects).catch(() => undefined);
@@ -83,6 +85,9 @@ function ProjectAdminTab() {
               <th colSpan={3} style={{ textAlign: "center" }}>
                 VCF 데이터
               </th>
+              <th rowSpan={2} style={{ textAlign: "center" }}>
+                CSP 데이터
+              </th>
               <th rowSpan={2}></th>
             </tr>
             <tr>
@@ -95,6 +100,7 @@ function ProjectAdminTab() {
               <th>라이센스 항목 수</th>
               <th>할당 코어 수</th>
               <th>사용 중 코어 수</th>
+              <th>할당 항목 수</th>
             </tr>
           </thead>
           <tbody>
@@ -111,6 +117,7 @@ function ProjectAdminTab() {
                 <td>{project.vcf_license_count}</td>
                 <td>{project.vcf_core_capacity.toLocaleString()}</td>
                 <td>{project.vcf_core_used.toLocaleString()}</td>
+                <td>{project.csp_license_count}</td>
                 <td style={{ display: "flex", gap: 6 }}>
                   <button
                     className="btn btn-secondary"
@@ -126,6 +133,9 @@ function ProjectAdminTab() {
                   </button>
                   <button className="btn btn-secondary" onClick={() => setVcfAssignTarget(project)}>
                     VCF 할당
+                  </button>
+                  <button className="btn btn-secondary" onClick={() => setCspAssignTarget(project)}>
+                    CSP 할당
                   </button>
                   <button className="btn btn-danger" onClick={() => handleDelete(project)}>
                     삭제
@@ -155,6 +165,13 @@ function ProjectAdminTab() {
         <VcfOpsAssignModal
           project={vcfAssignTarget}
           onClose={() => setVcfAssignTarget(null)}
+          onAssigned={loadProjects}
+        />
+      )}
+      {cspAssignTarget && (
+        <CspAssignModal
+          project={cspAssignTarget}
+          onClose={() => setCspAssignTarget(null)}
           onAssigned={loadProjects}
         />
       )}

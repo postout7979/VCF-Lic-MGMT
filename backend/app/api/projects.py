@@ -3,6 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.models.csp_data import CspLicenseItem
 from app.models.license_item import LicenseItem
 from app.models.project import Project
 from app.models.vcenter import VCenterInventoryItem
@@ -81,6 +82,12 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         .scalar()
         or 0
     )
+    csp_license_count = (
+        db.query(func.count(CspLicenseItem.id))
+        .filter(CspLicenseItem.project_id == project.id)
+        .scalar()
+        or 0
+    )
     return ProjectSummary(
         id=project.id,
         name=project.name,
@@ -94,6 +101,7 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         vcf_license_count=int(vcf_license_count),
         vcf_core_capacity=int(vcf_core_capacity),
         vcf_core_used=int(vcf_core_used),
+        csp_license_count=int(csp_license_count),
         item_count=item_count,
     )
 
@@ -167,6 +175,9 @@ def delete_project(project_id: int, db: Session = Depends(get_db)):
     db.query(VcfOpsCoreLicenseItem).filter(VcfOpsCoreLicenseItem.project_id == project_id).update(
         {"project_id": None}
     )
+    db.query(CspLicenseItem).filter(CspLicenseItem.project_id == project_id).update(
+        {"project_id": None}
+    )
     db.delete(project)
     db.commit()
 
@@ -229,4 +240,16 @@ def assign_vcf_ops_items(
         .filter(VcfOpsCoreLicenseItem.project_id == project_id)
         .all()
     )
+    return [row[0] for row in assigned]
+
+
+@router.post("/{project_id}/assign-csp", response_model=list[int])
+def assign_csp_items(project_id: int, payload: AssignItemsRequest, db: Session = Depends(get_db)):
+    project = db.get(Project, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+
+    _reconcile_assignment(db, CspLicenseItem, project_id, set(payload.item_ids))
+
+    assigned = db.query(CspLicenseItem.id).filter(CspLicenseItem.project_id == project_id).all()
     return [row[0] for row in assigned]

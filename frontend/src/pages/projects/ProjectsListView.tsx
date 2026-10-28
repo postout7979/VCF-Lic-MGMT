@@ -1,56 +1,126 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
-import { fetchProjects } from "../../api/client";
-import type { ProjectSummary } from "../../types";
+import { fetchProjectDetail, fetchProjects } from "../../api/client";
+import LicenseTypeBadge from "../../components/LicenseTypeBadge";
+import type { ProjectDetail, ProjectSummary } from "../../types";
 
 function ProjectsListView() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [detail, setDetail] = useState<ProjectDetail | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchProjects()
-      .then(setProjects)
-      .finally(() => setLoading(false));
+    fetchProjects().then((data) => {
+      setProjects(data);
+      if (data.length > 0) setSelectedProjectId(data[0].id);
+    });
   }, []);
 
-  if (loading) {
-    return <p className="text-muted">불러오는 중...</p>;
-  }
-
-  if (projects.length === 0) {
-    return (
-      <div className="card placeholder-card">
-        아직 생성된 프로젝트가 없습니다. 관리자 &gt; 프로젝트 탭에서 먼저 생성해주세요.
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (selectedProjectId === null) {
+      setDetail(null);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    fetchProjectDetail(selectedProjectId)
+      .then(setDetail)
+      .catch(() => setError("프로젝트 정보를 불러오지 못했습니다."))
+      .finally(() => setLoading(false));
+  }, [selectedProjectId]);
 
   return (
-    <div className="card">
-      <table>
-        <thead>
-          <tr>
-            <th>프로젝트명</th>
-            <th>생성일</th>
-            <th>할당 항목 수</th>
-            <th>Perpetual 합계</th>
-            <th>Subscription 합계</th>
-          </tr>
-        </thead>
-        <tbody>
-          {projects.map((project) => (
-            <tr key={project.id} className="clickable" onClick={() => navigate(`/projects/${project.id}`)}>
-              <td>{project.name}</td>
-              <td>{new Date(project.created_at).toLocaleDateString()}</td>
-              <td>{project.item_count.toLocaleString()}</td>
-              <td>{project.perpetual_quantity.toLocaleString()}</td>
-              <td>{project.subscription_quantity.toLocaleString()}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div>
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="form-field" style={{ maxWidth: 320 }}>
+          <label>프로젝트 선택</label>
+          <select
+            value={selectedProjectId ?? ""}
+            onChange={(e) => setSelectedProjectId(e.target.value ? Number(e.target.value) : null)}
+          >
+            {projects.length === 0 && <option value="">생성된 프로젝트가 없습니다</option>}
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="text-muted">불러오는 중...</p>
+      ) : error ? (
+        <p className="error-text">{error}</p>
+      ) : selectedProjectId === null || detail === null ? (
+        <div className="card placeholder-card">
+          아직 생성된 프로젝트가 없습니다. 설정 &gt; 프로젝트 탭에서 먼저 생성해주세요.
+        </div>
+      ) : (
+        <>
+          <div className="card" style={{ marginBottom: 20 }}>
+            <h2 style={{ marginTop: 0, color: "var(--color-primary-dark)" }}>{detail.name}</h2>
+            <div className="sum-row" style={{ fontSize: 14 }}>
+              <span>Perpetual 합계</span>
+              <span className="sum-value">{detail.perpetual_quantity.toLocaleString()}</span>
+            </div>
+            <div className="sum-row" style={{ fontSize: 14 }}>
+              <span>Subscription 합계</span>
+              <span className="sum-value">{detail.subscription_quantity.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <div className="card">
+            <p className="text-muted" style={{ marginTop: 0 }}>
+              할당된 항목 {detail.license_items.length}건
+            </p>
+            <div style={{ overflowX: "auto" }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Serial Number</th>
+                    <th>Parent Customer</th>
+                    <th>Customer Name</th>
+                    <th>Enduser Account Name</th>
+                    <th>Product Name</th>
+                    <th>License Type</th>
+                    <th>Quantity - ENT</th>
+                    <th>Part Number</th>
+                    <th>Division</th>
+                    <th>ERP Site ID</th>
+                    <th>Contract Status</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detail.license_items.map((item) => (
+                    <tr key={item.id}>
+                      <td>{item.serial_number}</td>
+                      <td>{item.parent_customer}</td>
+                      <td>{item.customer_name}</td>
+                      <td>{item.enduser_account_name}</td>
+                      <td>{item.product_name}</td>
+                      <td>
+                        <LicenseTypeBadge licenseType={item.license_type} />
+                      </td>
+                      <td>{item.quantity_ent}</td>
+                      <td>{item.part_number}</td>
+                      <td>{item.division}</td>
+                      <td>{item.erp_site_id}</td>
+                      <td>{item.contract_status}</td>
+                      <td>{item.start_date}</td>
+                      <td>{item.end_date}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
