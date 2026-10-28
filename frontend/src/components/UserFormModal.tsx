@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { createUser, updateUser } from "../api/client";
 import { generatePassword } from "../utils/password";
+import { isValidEmailFormat } from "../utils/email";
 import { SECURITY_QUESTIONS } from "../types";
 import type { User } from "../types";
 
@@ -24,9 +25,12 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const emailValid = isValidEmailFormat(email.trim());
+
   const canSubmit =
     password.trim() &&
     email.trim() &&
+    emailValid &&
     (isAdminAccount || (name.trim() && answer1.trim() && answer2.trim() && answer3.trim()));
 
   async function handleSubmit() {
@@ -124,6 +128,11 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
+            {email.trim() && (
+              <p className={emailValid ? "success-text" : "error-text"} style={{ margin: 0 }}>
+                {emailValid ? "올바른 이메일 형식입니다." : "이메일 형식이 올바르지 않습니다."}
+              </p>
+            )}
           </div>
           {!isAdminAccount && (
             <>

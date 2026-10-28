@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.auth import generate_session_token, get_current_user, require_admin
 from app.core.database import get_db
 from app.core.security_questions import SECURITY_QUESTIONS
+from app.core.validation import is_valid_email_format
 from app.models.user import User
 from app.models.user_application import UserApplication
 from app.schemas.auth import (
@@ -47,9 +48,14 @@ def _current_user_fields(user: User) -> dict:
 
 @router.post("/login", response_model=LoginResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == payload.username.strip()).first()
-    if user is None or user.password != payload.password:
-        raise HTTPException(status_code=401, detail="아이디 또는 비밀번호가 올바르지 않습니다.")
+    username = payload.username.strip()
+    user = db.query(User).filter(User.username == username).first()
+    if user is None:
+        if is_valid_email_format(username):
+            raise HTTPException(status_code=401, detail="존재하지 않는 이메일입니다.")
+        raise HTTPException(status_code=401, detail="이메일 형식이 올바르지 않습니다.")
+    if user.password != payload.password:
+        raise HTTPException(status_code=401, detail="비밀번호가 올바르지 않습니다.")
     user.session_token = generate_session_token()
     db.commit()
     db.refresh(user)
@@ -89,6 +95,8 @@ def update_me(
         email = payload.email.strip()
         if not email:
             raise HTTPException(status_code=400, detail="이메일을 입력해주세요.")
+        if not is_valid_email_format(email):
+            raise HTTPException(status_code=400, detail="이메일 형식이 올바르지 않습니다.")
         if not user.is_admin:
             if db.query(User).filter(User.username == email, User.id != user.id).first():
                 raise HTTPException(status_code=409, detail="이미 등록된 이메일입니다.")
@@ -109,6 +117,8 @@ def signup_request(payload: UserApplicationCreate, db: Session = Depends(get_db)
         raise HTTPException(status_code=400, detail="Password를 입력해주세요.")
     if not email:
         raise HTTPException(status_code=400, detail="Email을 입력해주세요.")
+    if not is_valid_email_format(email):
+        raise HTTPException(status_code=400, detail="이메일 형식이 올바르지 않습니다.")
     if (
         not payload.security_answer_1.strip()
         or not payload.security_answer_2.strip()

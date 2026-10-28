@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { updateMe } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { isValidEmailFormat } from "../utils/email";
 
 interface Props {
   onClose: () => void;
@@ -17,7 +18,12 @@ function SelfAccountModal({ onClose }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = email.trim().length > 0 && (isAdminAccount || name.trim().length > 0);
+  const emailValid = isValidEmailFormat(email.trim());
+
+  const canSubmit =
+    email.trim().length > 0 &&
+    emailValid &&
+    (isAdminAccount || name.trim().length > 0);
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -61,6 +67,11 @@ function SelfAccountModal({ onClose }: Props) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
+            {email.trim() && (
+              <p className={emailValid ? "success-text" : "error-text"} style={{ margin: 0 }}>
+                {emailValid ? "올바른 이메일 형식입니다." : "이메일 형식이 올바르지 않습니다."}
+              </p>
+            )}
           </div>
           {!isAdminAccount && (
             <div className="notice-box" style={{ gridColumn: "1 / -1" }}>

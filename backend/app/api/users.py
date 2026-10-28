@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import require_admin
 from app.core.database import get_db
+from app.core.validation import is_valid_email_format
 from app.models.project import Project
 from app.models.user import User, user_project_assignments
 from app.schemas.user import AssignUserProjectRequest, UserCreate, UserRead, UserUpdate
@@ -42,13 +43,15 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Password를 입력해주세요.")
     if not payload.email.strip():
         raise HTTPException(status_code=400, detail="Email을 입력해주세요.")
+    email = payload.email.strip()
+    if not is_valid_email_format(email):
+        raise HTTPException(status_code=400, detail="이메일 형식이 올바르지 않습니다.")
     if (
         not payload.security_answer_1.strip()
         or not payload.security_answer_2.strip()
         or not payload.security_answer_3.strip()
     ):
         raise HTTPException(status_code=400, detail="비밀번호 초기화 질문 3개에 모두 답변해주세요.")
-    email = payload.email.strip()
     if db.query(User).filter(User.username == email).first():
         raise HTTPException(status_code=409, detail="이미 등록된 이메일입니다.")
 
@@ -91,6 +94,8 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
         email = payload.email.strip()
         if not email:
             raise HTTPException(status_code=400, detail="Email을 입력해주세요.")
+        if not is_valid_email_format(email):
+            raise HTTPException(status_code=400, detail="이메일 형식이 올바르지 않습니다.")
         if not user.is_admin:
             # Non-admin accounts log in with their email; keep username in sync.
             if (

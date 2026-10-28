@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { signupRequest } from "../api/client";
 import { generatePassword } from "../utils/password";
+import { isValidEmailFormat } from "../utils/email";
 import { SECURITY_QUESTIONS } from "../types";
 
 interface Props {
@@ -20,10 +21,13 @@ function SignupRequestModal({ onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
+  const emailValid = isValidEmailFormat(email.trim());
+
   const canSubmit =
     name.trim() &&
     password.trim() &&
     email.trim() &&
+    emailValid &&
     answer1.trim() &&
     answer2.trim() &&
     answer3.trim();
@@ -115,6 +119,11 @@ function SignupRequestModal({ onClose }: Props) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
+            {email.trim() && (
+              <p className={emailValid ? "success-text" : "error-text"} style={{ margin: 0 }}>
+                {emailValid ? "올바른 이메일 형식입니다." : "이메일 형식이 올바르지 않습니다."}
+              </p>
+            )}
           </div>
           <div className="notice-box" style={{ gridColumn: "1 / -1" }}>
             비밀번호 초기화 시 이메일을 받지 못하는 경우를 대비한 보안 질문입니다. 세 질문 모두
