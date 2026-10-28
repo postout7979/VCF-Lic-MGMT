@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -18,6 +18,10 @@ class VcfOpsConnection(Base):
     # NOTE: stored in plain text for this internal tool; use a secrets
     # manager / encrypted column before exposing this beyond a trusted network.
     password: Mapped[str] = mapped_column(String, nullable=False)
+    # Internal VCF Operations instances commonly use self-signed certificates;
+    # defaults to true so certificate validation is skipped unless explicitly
+    # turned off.
+    tls_skip: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     detected_version: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String, default="pending")  # pending|connected|failed
     last_error: Mapped[str | None] = mapped_column(String, nullable=True)

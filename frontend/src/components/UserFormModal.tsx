@@ -45,8 +45,8 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box narrow" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal-box narrow">
         <h2>{isEdit ? "사용자 수정" : "사용자 추가"}</h2>
         <p className="text-muted">로그인 기능은 아직 구현되지 않았습니다. 계정 정보만 관리합니다.</p>
 

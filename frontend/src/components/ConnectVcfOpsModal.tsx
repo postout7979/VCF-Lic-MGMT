@@ -12,6 +12,7 @@ function ConnectVcfOpsModal({ onClose, onConnected }: Props) {
   const [host, setHost] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [tlsSkip, setTlsSkip] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,6 +28,7 @@ function ConnectVcfOpsModal({ onClose, onConnected }: Props) {
         host: host.trim(),
         username: username.trim(),
         password,
+        tls_skip: tlsSkip,
       });
       onConnected();
       onClose();
@@ -39,12 +41,15 @@ function ConnectVcfOpsModal({ onClose, onConnected }: Props) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box narrow" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal-box narrow">
         <h2>VCF Operations 연결</h2>
         <p className="text-muted">
           VCF 9 Operations에 연결하여 코어 라이센스 할당/사용 현황을 수집합니다.
         </p>
+        <div className="notice-box">
+          보안을 위해 전체 권한 계정이 아닌 Read-only(읽기 전용) 계정 사용을 권장합니다.
+        </div>
 
         <div className="form-grid" style={{ marginTop: 16 }}>
           <div className="form-field" style={{ gridColumn: "1 / -1" }}>
@@ -81,6 +86,16 @@ function ConnectVcfOpsModal({ onClose, onConnected }: Props) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+          </div>
+          <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={tlsSkip}
+                onChange={(e) => setTlsSkip(e.target.checked)}
+              />
+              TLS 인증서 검증 건너뛰기 (자체 서명 인증서 사용 시 체크)
+            </label>
           </div>
         </div>
 

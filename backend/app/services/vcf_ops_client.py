@@ -27,7 +27,7 @@ def _check_reachable(host: str, port: int = 443) -> None:
         raise ValueError(f"VCF Operations 서버({host}:{port})에 연결할 수 없습니다: {exc}") from exc
 
 
-def _acquire_suite_api_token(base: str, username: str, password: str) -> str:
+def _acquire_suite_api_token(base: str, username: str, password: str, verify_tls: bool) -> str:
     """Log in with username/password via the Aria/VCF Operations suite-api
     and return a session token.
 
@@ -41,7 +41,7 @@ def _acquire_suite_api_token(base: str, username: str, password: str) -> str:
             f"{base}/suite-api/api/auth/token/acquire",
             json={"username": username, "password": password},
             headers={"Content-Type": "application/json", "Accept": "application/json"},
-            verify=False,
+            verify=verify_tls,
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
         resp.raise_for_status()
@@ -55,7 +55,7 @@ def _acquire_suite_api_token(base: str, username: str, password: str) -> str:
     return token
 
 
-def _detect_version(base: str, token: str) -> str | None:
+def _detect_version(base: str, token: str, verify_tls: bool) -> str | None:
     """A lightweight authenticated suite-api call that doubles as an auth
     check: a bad token surfaces here as a 401 instead of silently returning
     no data later."""
@@ -64,7 +64,7 @@ def _detect_version(base: str, token: str) -> str | None:
         resp = requests.get(
             f"{base}/suite-api/api/versions/current",
             headers=headers,
-            verify=False,
+            verify=verify_tls,
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
         resp.raise_for_status()
@@ -85,7 +85,7 @@ def _decode_jws_payload(compact: str) -> dict:
     return json.loads(base64.urlsafe_b64decode(payload_segment))
 
 
-def _collect_usage_report(base: str, token: str) -> dict[tuple[str, str], int]:
+def _collect_usage_report(base: str, token: str, verify_tls: bool) -> dict[tuple[str, str], int]:
     """Fetch the suite-api license usage report (the same report submitted
     every ~180 days per KB 448518 to keep the license "heartbeat" alive:
     `POST /suite-api/internal/extension/vcf-license-cloud-integration/usage/offline/report`)
@@ -113,7 +113,7 @@ def _collect_usage_report(base: str, token: str) -> dict[tuple[str, str], int]:
         f"{base}/suite-api/internal/extension/vcf-license-cloud-integration/usage/offline/report",
         headers=headers,
         params=params,
-        verify=False,
+        verify=verify_tls,
         timeout=REQUEST_TIMEOUT_SECONDS,
     )
     resp.raise_for_status()
@@ -138,7 +138,9 @@ def _collect_usage_report(base: str, token: str) -> dict[tuple[str, str], int]:
     return totals
 
 
-def _collect_entitlements_via_browser(base: str, username: str, password: str) -> list[dict]:
+def _collect_entitlements_via_browser(
+    base: str, username: str, password: str, verify_tls: bool
+) -> list[dict]:
     """Log in to the VCF Operations *web UI* and collect the per-product
     core/TiB license entitlement rows shown on Manage > Licensing >
     Licenses & Registration.
@@ -167,9 +169,10 @@ def _collect_entitlements_via_browser(base: str, username: str, password: str) -
 
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(args=["--ignore-certificate-errors"])
+            launch_args = [] if verify_tls else ["--ignore-certificate-errors"]
+            browser = p.chromium.launch(args=launch_args)
             try:
-                context = browser.new_context(ignore_https_errors=True)
+                context = browser.new_context(ignore_https_errors=not verify_tls)
                 page = context.new_page()
                 page.set_default_timeout(BROWSER_DEFAULT_TIMEOUT_MS)
                 # A concurrent-session warning (from repeated syncs) shows as
@@ -266,7 +269,9 @@ def _collect_entitlements_via_browser(base: str, username: str, password: str) -
     return rows
 
 
-def collect_core_license_usage(host: str, username: str, password: str) -> tuple[str | None, list[dict]]:
+def collect_core_license_usage(
+    host: str, username: str, password: str, verify_tls: bool = False
+) -> tuple[str | None, list[dict]]:
     """Log in to VCF 9 Operations and collect core license allocation/usage
     rows (the same data shown on Manage > Licensing > Licenses & Registration).
 
@@ -276,12 +281,12 @@ def collect_core_license_usage(host: str, username: str, password: str) -> tuple
     _check_reachable(host)
     base = f"https://{host}"
 
-    suite_api_token = _acquire_suite_api_token(base, username, password)
-    detected_version = _detect_version(base, suite_api_token)
-    rows = _collect_entitlements_via_browser(base, username, password)
+    suite_api_token = _acquire_suite_api_token(base, username, password, verify_tls)
+    detected_version = _detect_version(base, suite_api_token, verify_tls)
+    rows = _collect_entitlements_via_browser(base, username, password, verify_tls)
 
     try:
-        usage_totals = _collect_usage_report(base, suite_api_token)
+        usage_totals = _collect_usage_report(base, suite_api_token, verify_tls)
     except (requests.RequestException, KeyError, ValueError):
         # Supplementary cross-check only; its absence must not fail the sync.
         usage_totals = {}

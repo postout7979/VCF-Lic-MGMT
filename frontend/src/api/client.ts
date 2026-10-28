@@ -135,6 +135,7 @@ export function createVCenterConnection(payload: {
   username: string;
   password: string;
   version_hint: VCenterVersionHint;
+  tls_skip: boolean;
 }): Promise<VCenterConnection> {
   return request<VCenterConnection>("/legacy-infra/vcenter-connections", {
     method: "POST",
@@ -193,6 +194,7 @@ export function createVcfOpsConnection(payload: {
   host: string;
   username: string;
   password: string;
+  tls_skip: boolean;
 }): Promise<VcfOpsConnection> {
   return request<VcfOpsConnection>("/vcf-ops/connections", {
     method: "POST",

@@ -80,6 +80,7 @@ export interface VCenterConnection {
   host: string;
   username: string;
   version_hint: VCenterVersionHint;
+  tls_skip: boolean;
   detected_version: string | null;
   status: "pending" | "connected" | "failed";
   last_error: string | null;
@@ -113,6 +114,7 @@ export interface VcfOpsConnection {
   name: string;
   host: string;
   username: string;
+  tls_skip: boolean;
   detected_version: string | null;
   status: "pending" | "connected" | "failed";
   last_error: string | null;

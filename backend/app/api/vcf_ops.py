@@ -27,6 +27,7 @@ def _to_read(connection: VcfOpsConnection, db: Session) -> VcfOpsConnectionRead:
             "name": connection.name,
             "host": connection.host,
             "username": connection.username,
+            "tls_skip": connection.tls_skip,
             "detected_version": connection.detected_version,
             "status": connection.status,
             "last_error": connection.last_error,
@@ -40,7 +41,10 @@ def _to_read(connection: VcfOpsConnection, db: Session) -> VcfOpsConnectionRead:
 def _sync_connection(connection: VcfOpsConnection, db: Session) -> None:
     try:
         detected_version, rows = collect_core_license_usage(
-            connection.host, connection.username, connection.password
+            connection.host,
+            connection.username,
+            connection.password,
+            verify_tls=not connection.tls_skip,
         )
     except ValueError as exc:
         connection.status = "failed"
@@ -96,6 +100,7 @@ def create_connection(payload: VcfOpsConnectionCreate, db: Session = Depends(get
         host=payload.host,
         username=payload.username,
         password=payload.password,
+        tls_skip=payload.tls_skip,
         status="pending",
     )
     db.add(connection)

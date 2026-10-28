@@ -10,6 +10,7 @@ class VCenterConnectionCreate(BaseModel):
     username: str
     password: str
     version_hint: Literal["7.x", "8.x"]
+    tls_skip: bool = True
 
 
 class VCenterInventoryItemRead(BaseModel):
@@ -36,6 +37,7 @@ class VCenterConnectionRead(BaseModel):
     host: str
     username: str
     version_hint: str
+    tls_skip: bool = True
     detected_version: str | None
     status: str
     last_error: str | None

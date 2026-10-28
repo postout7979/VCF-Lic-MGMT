@@ -137,8 +137,8 @@ function VCenterAssignModal({ project, onClose, onAssigned }: Props) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal-box">
         <h2>{project.name} — vCenter 할당</h2>
         <p className="text-muted">
           vCenter 또는 Cluster를 체크하면 하위 Host가 모두 선택됩니다. vCenter/Cluster 이름을

@@ -38,8 +38,8 @@ function UserAssignProjectModal({ user, onClose, onAssigned }: Props) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box narrow" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal-box narrow">
         <h2>{user.username} — 프로젝트 할당</h2>
         <p className="text-muted">이 사용자를 할당할 프로젝트를 선택하세요.</p>
         {error && <p className="error-text">{error}</p>}

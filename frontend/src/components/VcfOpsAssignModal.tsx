@@ -124,8 +124,8 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal-box">
         <h2>{project.name} — VCF 할당</h2>
         <p className="text-muted">
           VCF Operations 연결을 체크하면 하위 라이센스 항목이 모두 선택됩니다. 연결 이름을 클릭하면

@@ -81,8 +81,8 @@ function SupplierAssignModal({ project, onClose, onAssigned }: Props) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal-box">
         <h2>{project.name} — 공급자 할당</h2>
         <p className="text-muted">
           체크박스로 항목을 선택/해제한 뒤 저장을 눌러주세요. 이미 이 프로젝트에 할당된 항목은

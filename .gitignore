@@ -28,3 +28,6 @@ npm-debug.log*
 # Build output
 dist/
 build/
+
+# Self-signed dev TLS certs (generated at image build time)
+frontend/certs/

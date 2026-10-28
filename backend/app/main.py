@@ -48,6 +48,11 @@ SCHEMA_PATCHES = [
     "ALTER TABLE vcf_ops_connections ALTER COLUMN password SET NOT NULL",
     "ALTER TABLE vcf_ops_core_license_items ADD COLUMN IF NOT EXISTS verified_core_used INTEGER",
     "ALTER TABLE vcf_ops_core_license_items ADD COLUMN IF NOT EXISTS project_id INTEGER REFERENCES projects(id)",
+    # Previously TLS verification was unconditionally skipped; now it's an
+    # explicit per-connection choice exposed in the connect modal, defaulted
+    # to true to preserve existing connections' current behavior.
+    "ALTER TABLE vcenter_connections ADD COLUMN IF NOT EXISTS tls_skip BOOLEAN NOT NULL DEFAULT true",
+    "ALTER TABLE vcf_ops_connections ADD COLUMN IF NOT EXISTS tls_skip BOOLEAN NOT NULL DEFAULT true",
 ]
 
 app = FastAPI(title="VCF License Management")

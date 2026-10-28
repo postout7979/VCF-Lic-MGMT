@@ -271,6 +271,26 @@ tbody tr.selected-row td {
   align-items: center;
 }
 
+.notice-box {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-md);
+  color: #1e40af;
+  font-size: 12.5px;
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -16,7 +16,9 @@ def _check_reachable(host: str, port: int = 443) -> None:
         raise ValueError(f"vCenter 서버({host}:{port})에 연결할 수 없습니다: {exc}") from exc
 
 
-def collect_inventory(host: str, username: str, password: str) -> tuple[str, list[dict]]:
+def collect_inventory(
+    host: str, username: str, password: str, verify_tls: bool = False
+) -> tuple[str, list[dict]]:
     """Connect to a vCenter (7.x/8.x) and collect per-host license/hardware info.
 
     Returns (detected_version, inventory_rows). Raises ValueError on any
@@ -25,8 +27,8 @@ def collect_inventory(host: str, username: str, password: str) -> tuple[str, lis
     _check_reachable(host)
 
     # Internal vCenters are commonly self-signed; certificate validation is
-    # intentionally skipped here rather than requiring a trusted CA bundle.
-    ssl_context = ssl._create_unverified_context()
+    # skipped unless the connection was explicitly configured to require it.
+    ssl_context = ssl.create_default_context() if verify_tls else ssl._create_unverified_context()
 
     try:
         si = SmartConnect(host=host, user=username, pwd=password, sslContext=ssl_context)

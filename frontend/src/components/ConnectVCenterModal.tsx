@@ -14,6 +14,7 @@ function ConnectVCenterModal({ onClose, onConnected }: Props) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [versionHint, setVersionHint] = useState<VCenterVersionHint>("8.x");
+  const [tlsSkip, setTlsSkip] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +31,7 @@ function ConnectVCenterModal({ onClose, onConnected }: Props) {
         username: username.trim(),
         password,
         version_hint: versionHint,
+        tls_skip: tlsSkip,
       });
       onConnected();
       onClose();
@@ -42,12 +44,15 @@ function ConnectVCenterModal({ onClose, onConnected }: Props) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box narrow" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal-box narrow">
         <h2>vCenter 어답터 연결</h2>
         <p className="text-muted">
           vCenter 7.x 또는 8.x에 연결하여 Cluster/Host/CPU/라이센스 정보를 수집합니다.
         </p>
+        <div className="notice-box">
+          보안을 위해 전체 권한 계정이 아닌 Read-only(읽기 전용) 계정 사용을 권장합니다.
+        </div>
 
         <div className="form-grid" style={{ marginTop: 16 }}>
           <div className="form-field" style={{ gridColumn: "1 / -1" }}>
@@ -94,6 +99,16 @@ function ConnectVCenterModal({ onClose, onConnected }: Props) {
               <option value="7.x">7.x</option>
               <option value="8.x">8.x</option>
             </select>
+          </div>
+          <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={tlsSkip}
+                onChange={(e) => setTlsSkip(e.target.checked)}
+              />
+              TLS 인증서 검증 건너뛰기 (자체 서명 인증서 사용 시 체크)
+            </label>
           </div>
         </div>
 

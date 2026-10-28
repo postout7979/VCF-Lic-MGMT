@@ -12,7 +12,7 @@ const TABS = [
   { key: "supplier-data", label: "공급자 데이터" },
   { key: "csp-data", label: "CSP 현황" },
   { key: "legacy-infra", label: "Legacy Infra" },
-  { key: "vcf-ops", label: "VCF" },
+  { key: "vcf-ops", label: "VCF Infra" },
   { key: "users", label: "사용자" },
 ] as const;
 

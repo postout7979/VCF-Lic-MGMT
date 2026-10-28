@@ -28,6 +28,7 @@ def _to_read(connection: VCenterConnection, db: Session) -> VCenterConnectionRea
             "host": connection.host,
             "username": connection.username,
             "version_hint": connection.version_hint,
+            "tls_skip": connection.tls_skip,
             "detected_version": connection.detected_version,
             "status": connection.status,
             "last_error": connection.last_error,
@@ -41,7 +42,10 @@ def _to_read(connection: VCenterConnection, db: Session) -> VCenterConnectionRea
 def _sync_connection(connection: VCenterConnection, db: Session) -> None:
     try:
         detected_version, rows = collect_inventory(
-            connection.host, connection.username, connection.password
+            connection.host,
+            connection.username,
+            connection.password,
+            verify_tls=not connection.tls_skip,
         )
     except ValueError as exc:
         connection.status = "failed"
@@ -102,6 +106,7 @@ def create_connection(payload: VCenterConnectionCreate, db: Session = Depends(ge
         username=payload.username,
         password=payload.password,
         version_hint=payload.version_hint,
+        tls_skip=payload.tls_skip,
         status="pending",
     )
     db.add(connection)

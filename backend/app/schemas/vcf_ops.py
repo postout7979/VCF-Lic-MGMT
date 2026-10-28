@@ -8,6 +8,7 @@ class VcfOpsConnectionCreate(BaseModel):
     host: str
     username: str
     password: str
+    tls_skip: bool = True
 
 
 class VcfOpsCoreLicenseItemRead(BaseModel):
@@ -33,6 +34,7 @@ class VcfOpsConnectionRead(BaseModel):
     name: str
     host: str
     username: str
+    tls_skip: bool = True
     detected_version: str | None
     status: str
     last_error: str | None

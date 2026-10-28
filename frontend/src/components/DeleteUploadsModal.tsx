@@ -50,8 +50,8 @@ function DeleteUploadsModal({ onClose, onDeleted }: Props) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box narrow" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal-box narrow">
         <h2>업로드 개별 삭제</h2>
         <p className="text-muted">삭제할 업로드를 선택하세요.</p>
         {error && <p className="error-text">{error}</p>}
