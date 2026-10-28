@@ -9,7 +9,7 @@ interface Props {
 }
 
 function SignupRequestModal({ onClose }: Props) {
-  const [username, setUsername] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState(generatePassword());
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -21,7 +21,7 @@ function SignupRequestModal({ onClose }: Props) {
   const [done, setDone] = useState(false);
 
   const canSubmit =
-    username.trim() &&
+    name.trim() &&
     password.trim() &&
     email.trim() &&
     answer1.trim() &&
@@ -34,7 +34,7 @@ function SignupRequestModal({ onClose }: Props) {
     setError(null);
     try {
       await signupRequest({
-        username: username.trim(),
+        name: name.trim(),
         password,
         email: email.trim(),
         security_answer_1: answer1.trim(),
@@ -74,12 +74,12 @@ function SignupRequestModal({ onClose }: Props) {
 
         <div className="form-grid" style={{ marginTop: 16 }}>
           <div className="form-field" style={{ gridColumn: "1 / -1" }}>
-            <label>Username</label>
+            <label>이름</label>
             <input
               type="text"
               autoFocus
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
             />
           </div>
           <div className="form-field" style={{ gridColumn: "1 / -1" }}>
@@ -108,7 +108,7 @@ function SignupRequestModal({ onClose }: Props) {
             </div>
           </div>
           <div className="form-field" style={{ gridColumn: "1 / -1" }}>
-            <label>Email</label>
+            <label>Email (로그인 아이디)</label>
             <input
               type="text"
               placeholder="user@example.com"

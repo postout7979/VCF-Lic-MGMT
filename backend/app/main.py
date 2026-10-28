@@ -10,6 +10,7 @@ from app.api.auth import router as auth_router
 from app.api.csp_data import router as csp_data_router
 from app.api.legacy_infra import router as legacy_infra_router
 from app.api.projects import router as projects_router
+from app.api.network_settings import router as network_settings_router
 from app.api.smtp_settings import router as smtp_settings_router
 from app.api.supplier_data import router as supplier_data_router
 from app.api.user_applications import router as user_applications_router
@@ -21,6 +22,7 @@ from app.services.scheduler import scheduler_loop
 from app.models import (  # noqa: F401  (register models with Base)
     CspLicenseItem,
     LicenseItem,
+    NetworkSettings,
     Project,
     SmtpSettings,
     User,
@@ -95,6 +97,30 @@ SCHEMA_PATCHES = [
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_key_created_at TIMESTAMP",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_code VARCHAR",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expires_at TIMESTAMP",
+    # Non-admin accounts now log in with their email address; `name` is the
+    # display name collected instead of a username on signup/creation.
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR",
+    # user_applications used to key on `username`; guarded so it's a no-op
+    # on a fresh install, where create_all already made the new schema.
+    """
+    DO $$
+    BEGIN
+        IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'user_applications' AND column_name = 'username'
+        ) THEN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'user_applications' AND column_name = 'name'
+            ) THEN
+                ALTER TABLE user_applications ADD COLUMN name VARCHAR;
+            END IF;
+            UPDATE user_applications SET name = username WHERE name IS NULL;
+            ALTER TABLE user_applications ALTER COLUMN name SET NOT NULL;
+            ALTER TABLE user_applications DROP COLUMN username;
+        END IF;
+    END $$;
+    """,
 ]
 
 _RANDOM_HIRE_YEARS = [str(y) for y in range(2008, 2024)]
@@ -119,6 +145,7 @@ app.include_router(csp_data_router, prefix=settings.api_v1_prefix)
 app.include_router(users_router, prefix=settings.api_v1_prefix)
 app.include_router(smtp_settings_router, prefix=settings.api_v1_prefix)
 app.include_router(user_applications_router, prefix=settings.api_v1_prefix)
+app.include_router(network_settings_router, prefix=settings.api_v1_prefix)
 
 
 def _seed_admin_user(db: Session) -> None:
@@ -127,6 +154,28 @@ def _seed_admin_user(db: Session) -> None:
     if db.query(User).filter(User.username == "admin").first() is not None:
         return
     db.add(User(username="admin", password="admin", email="admin@local", is_admin=True))
+    db.commit()
+
+
+def _migrate_username_to_email(db: Session) -> None:
+    """Non-admin accounts now log in with their email address instead of an
+    arbitrary username; align `username` to `email` and preserve whatever
+    the old username was as the display `name`, for accounts that predate
+    this change and don't have one yet."""
+    from app.models.user import User
+
+    users = db.query(User).filter(User.is_admin.is_(False)).all()
+    seen_emails: set[str] = set()
+    for user in users:
+        if user.name is None:
+            user.name = user.username
+        if user.email in seen_emails:
+            # Duplicate email among non-admin accounts; leave username as-is
+            # rather than violate the unique constraint - needs manual fixup.
+            continue
+        seen_emails.add(user.email)
+        if user.username != user.email:
+            user.username = user.email
     db.commit()
 
 
@@ -168,6 +217,7 @@ def on_startup():
     db = SessionLocal()
     try:
         _seed_admin_user(db)
+        _migrate_username_to_email(db)
         _backfill_security_answers(db)
     finally:
         db.close()

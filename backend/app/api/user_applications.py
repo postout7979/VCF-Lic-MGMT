@@ -25,11 +25,12 @@ def approve_application(application_id: int, db: Session = Depends(get_db)):
     application = db.get(UserApplication, application_id)
     if application is None:
         raise HTTPException(status_code=404, detail="신청 내역을 찾을 수 없습니다.")
-    if db.query(User).filter(User.username == application.username).first():
-        raise HTTPException(status_code=409, detail="같은 Username이 이미 존재합니다.")
+    if db.query(User).filter(User.username == application.email).first():
+        raise HTTPException(status_code=409, detail="이미 등록된 이메일입니다.")
 
     user = User(
-        username=application.username,
+        username=application.email,
+        name=application.name,
         password=application.password,
         email=application.email,
         security_answer_1=application.security_answer_1,
@@ -43,6 +44,7 @@ def approve_application(application_id: int, db: Session = Depends(get_db)):
     return UserRead(
         id=user.id,
         username=user.username,
+        name=user.name,
         password=user.password,
         email=user.email,
         is_admin=False,

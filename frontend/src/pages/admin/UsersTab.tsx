@@ -104,6 +104,7 @@ function UsersTab() {
               <thead>
                 <tr>
                   <th>Username</th>
+                  <th>이름</th>
                   <th>Password</th>
                   <th>Email</th>
                   <th>프로젝트</th>
@@ -122,6 +123,7 @@ function UsersTab() {
                         </span>
                       )}
                     </td>
+                    <td>{user.name ?? "-"}</td>
                     <td>
                       <span style={{ fontFamily: "monospace", marginRight: 8 }}>
                         {revealed.has(user.id) ? user.password : "•".repeat(10)}

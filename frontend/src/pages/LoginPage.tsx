@@ -51,7 +51,7 @@ function LoginPage() {
       <form className="card" style={{ width: 360 }} onSubmit={handleSubmit}>
         <h2 style={{ marginTop: 0, textAlign: "center" }}>VCF License Management</h2>
         <div className="form-field" style={{ marginBottom: 14 }}>
-          <label>Username</label>
+          <label>아이디 (이메일)</label>
           <input
             type="text"
             autoFocus

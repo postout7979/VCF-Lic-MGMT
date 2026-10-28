@@ -4,6 +4,7 @@ import type {
   CurrentUser,
   LicenseItem,
   LicenseItemPage,
+  NetworkSettings,
   ProjectDetail,
   ProjectSummary,
   SmtpSettings,
@@ -69,7 +70,11 @@ export function fetchMe(): Promise<CurrentUser> {
   return request<CurrentUser>("/auth/me");
 }
 
-export function updateMe(payload: { password?: string; email?: string }): Promise<CurrentUser> {
+export function updateMe(payload: {
+  name?: string;
+  password?: string;
+  email?: string;
+}): Promise<CurrentUser> {
   return request<CurrentUser>("/auth/me", {
     method: "PATCH",
     body: JSON.stringify(payload),
@@ -77,7 +82,7 @@ export function updateMe(payload: { password?: string; email?: string }): Promis
 }
 
 export function signupRequest(payload: {
-  username: string;
+  name: string;
   password: string;
   email: string;
   security_answer_1: string;
@@ -179,6 +184,20 @@ export function sendTestEmail(toAddress: string): Promise<void> {
   return request<void>("/smtp-settings/test", {
     method: "POST",
     body: JSON.stringify({ to_address: toAddress }),
+  });
+}
+
+export function fetchNetworkSettings(): Promise<NetworkSettings> {
+  return request<NetworkSettings>("/network-settings");
+}
+
+export function updateNetworkSettings(payload: {
+  dns_server: string;
+  ntp_server: string;
+}): Promise<NetworkSettings> {
+  return request<NetworkSettings>("/network-settings", {
+    method: "PUT",
+    body: JSON.stringify(payload),
   });
 }
 
@@ -489,7 +508,7 @@ export function fetchUsers(): Promise<User[]> {
 }
 
 export function createUser(payload: {
-  username: string;
+  name: string;
   password: string;
   email: string;
   security_answer_1: string;
@@ -505,7 +524,7 @@ export function createUser(payload: {
 export function updateUser(
   userId: number,
   payload: {
-    username?: string;
+    name?: string;
     password?: string;
     email?: string;
     security_answer_1?: string;

@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class UserCreate(BaseModel):
-    username: str
+    name: str
     password: str
     email: str
     security_answer_1: str
@@ -13,7 +13,7 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    username: str | None = None
+    name: str | None = None
     password: str | None = None
     email: str | None = None
     security_answer_1: str | None = None
@@ -26,6 +26,7 @@ class UserRead(BaseModel):
 
     id: int
     username: str
+    name: str | None = None
     password: str
     email: str
     is_admin: bool = False

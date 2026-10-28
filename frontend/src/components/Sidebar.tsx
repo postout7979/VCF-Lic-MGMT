@@ -33,7 +33,7 @@ function Sidebar() {
             className="sidebar-user-name-btn"
             onClick={() => setShowAccountModal(true)}
           >
-            {user?.username}
+            {user?.name || user?.username}
           </button>
           {user && user.project_names.length > 0 && (
             <span className="sidebar-user-project">{user.project_names.join(", ")}</span>

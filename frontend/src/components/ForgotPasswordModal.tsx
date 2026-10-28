@@ -148,7 +148,7 @@ function ForgotPasswordModal({ onClose }: Props) {
         {step === "username" && (
           <>
             <div className="form-field" style={{ marginTop: 16 }}>
-              <label>Username</label>
+              <label>아이디 (이메일)</label>
               <input
                 type="text"
                 autoFocus

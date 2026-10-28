@@ -15,6 +15,7 @@ def _to_read(user: User, db: Session) -> UserRead:
     return UserRead(
         id=user.id,
         username=user.username,
+        name=user.name,
         password=user.password,
         email=user.email,
         is_admin=user.is_admin,
@@ -35,8 +36,8 @@ def list_users(db: Session = Depends(get_db)):
 
 @router.post("", response_model=UserRead, status_code=201)
 def create_user(payload: UserCreate, db: Session = Depends(get_db)):
-    if not payload.username.strip():
-        raise HTTPException(status_code=400, detail="Username을 입력해주세요.")
+    if not payload.name.strip():
+        raise HTTPException(status_code=400, detail="이름을 입력해주세요.")
     if not payload.password:
         raise HTTPException(status_code=400, detail="Password를 입력해주세요.")
     if not payload.email.strip():
@@ -47,13 +48,15 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
         or not payload.security_answer_3.strip()
     ):
         raise HTTPException(status_code=400, detail="비밀번호 초기화 질문 3개에 모두 답변해주세요.")
-    if db.query(User).filter(User.username == payload.username.strip()).first():
-        raise HTTPException(status_code=409, detail="같은 Username이 이미 존재합니다.")
+    email = payload.email.strip()
+    if db.query(User).filter(User.username == email).first():
+        raise HTTPException(status_code=409, detail="이미 등록된 이메일입니다.")
 
     user = User(
-        username=payload.username.strip(),
+        username=email,
+        name=payload.name.strip(),
         password=payload.password,
-        email=payload.email.strip(),
+        email=email,
         security_answer_1=payload.security_answer_1.strip(),
         security_answer_2=payload.security_answer_2.strip(),
         security_answer_3=payload.security_answer_3.strip(),
@@ -70,21 +73,14 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
     if user is None:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
 
-    if payload.username is not None:
+    if payload.name is not None:
         if user.is_admin:
             raise HTTPException(
                 status_code=400, detail="admin 계정은 이메일과 비밀번호만 수정할 수 있습니다."
             )
-        username = payload.username.strip()
-        if not username:
-            raise HTTPException(status_code=400, detail="Username을 입력해주세요.")
-        if (
-            db.query(User)
-            .filter(User.username == username, User.id != user_id)
-            .first()
-        ):
-            raise HTTPException(status_code=409, detail="같은 Username이 이미 존재합니다.")
-        user.username = username
+        if not payload.name.strip():
+            raise HTTPException(status_code=400, detail="이름을 입력해주세요.")
+        user.name = payload.name.strip()
 
     if payload.password is not None:
         if not payload.password:
@@ -95,6 +91,15 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
         email = payload.email.strip()
         if not email:
             raise HTTPException(status_code=400, detail="Email을 입력해주세요.")
+        if not user.is_admin:
+            # Non-admin accounts log in with their email; keep username in sync.
+            if (
+                db.query(User)
+                .filter(User.username == email, User.id != user_id)
+                .first()
+            ):
+                raise HTTPException(status_code=409, detail="이미 등록된 이메일입니다.")
+            user.username = email
         user.email = email
 
     if payload.security_answer_1 is not None:

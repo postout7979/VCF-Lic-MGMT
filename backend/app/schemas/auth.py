@@ -9,6 +9,7 @@ class LoginRequest(BaseModel):
 class CurrentUser(BaseModel):
     id: int
     username: str
+    name: str | None = None
     email: str
     is_admin: bool
     project_ids: list[int] = []
@@ -58,5 +59,6 @@ class VerifySecurityAnswersRequest(BaseModel):
 
 
 class UpdateMeRequest(BaseModel):
+    name: str | None = None
     password: str | None = None
     email: str | None = None

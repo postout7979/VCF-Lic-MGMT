@@ -14,7 +14,7 @@ interface Props {
 function UserFormModal({ user, onClose, onSaved }: Props) {
   const isEdit = user !== null;
   const isAdminAccount = user?.is_admin ?? false;
-  const [username, setUsername] = useState(user?.username ?? "");
+  const [name, setName] = useState(user?.name ?? "");
   const [password, setPassword] = useState(user?.password ?? generatePassword());
   const [email, setEmail] = useState(user?.email ?? "");
   const [answer1, setAnswer1] = useState(user?.security_answer_1 ?? "");
@@ -25,10 +25,9 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const canSubmit =
-    username.trim() &&
     password.trim() &&
     email.trim() &&
-    (isAdminAccount || (answer1.trim() && answer2.trim() && answer3.trim()));
+    (isAdminAccount || (name.trim() && answer1.trim() && answer2.trim() && answer3.trim()));
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -40,7 +39,7 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
           ...(isAdminAccount
             ? {}
             : {
-                username: username.trim(),
+                name: name.trim(),
                 security_answer_1: answer1.trim(),
                 security_answer_2: answer2.trim(),
                 security_answer_3: answer3.trim(),
@@ -50,7 +49,7 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
         });
       } else {
         await createUser({
-          username: username.trim(),
+          name: name.trim(),
           password,
           email: email.trim(),
           security_answer_1: answer1.trim(),
@@ -76,16 +75,22 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
         )}
 
         <div className="form-grid" style={{ marginTop: 16 }}>
-          <div className="form-field" style={{ gridColumn: "1 / -1" }}>
-            <label>Username</label>
-            <input
-              type="text"
-              placeholder="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              disabled={isAdminAccount}
-            />
-          </div>
+          {isAdminAccount ? (
+            <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+              <label>Username</label>
+              <input type="text" value={user?.username ?? ""} disabled />
+            </div>
+          ) : (
+            <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+              <label>이름</label>
+              <input
+                type="text"
+                placeholder="이름"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+          )}
           <div className="form-field" style={{ gridColumn: "1 / -1" }}>
             <label>Password</label>
             <div className="form-row" style={{ marginBottom: 0 }}>
@@ -112,7 +117,7 @@ function UserFormModal({ user, onClose, onSaved }: Props) {
             </div>
           </div>
           <div className="form-field" style={{ gridColumn: "1 / -1" }}>
-            <label>Email</label>
+            <label>Email{!isAdminAccount && " (로그인 아이디)"}</label>
             <input
               type="text"
               placeholder="user@example.com"

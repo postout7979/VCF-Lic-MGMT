@@ -35,7 +35,7 @@ function UserApplicationsTab() {
   }
 
   async function handleApprove(application: UserApplication) {
-    if (!window.confirm(`${application.username} 사용자를 승인할까요?`)) return;
+    if (!window.confirm(`${application.name} 사용자를 승인할까요?`)) return;
     setBusyId(application.id);
     setError(null);
     try {
@@ -49,7 +49,7 @@ function UserApplicationsTab() {
   }
 
   async function handleReject(application: UserApplication) {
-    if (!window.confirm(`${application.username} 신청을 거절할까요?`)) return;
+    if (!window.confirm(`${application.name} 신청을 거절할까요?`)) return;
     setBusyId(application.id);
     setError(null);
     try {
@@ -83,7 +83,7 @@ function UserApplicationsTab() {
             <table>
               <thead>
                 <tr>
-                  <th>Username</th>
+                  <th>이름</th>
                   <th>Password</th>
                   <th>Email</th>
                   <th>신청일</th>
@@ -93,7 +93,7 @@ function UserApplicationsTab() {
               <tbody>
                 {applications.map((application) => (
                   <tr key={application.id}>
-                    <td>{application.username}</td>
+                    <td>{application.name}</td>
                     <td>
                       <span style={{ fontFamily: "monospace", marginRight: 8 }}>
                         {revealed.has(application.id) ? application.password : "•".repeat(10)}

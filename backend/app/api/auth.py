@@ -37,6 +37,7 @@ def _current_user_fields(user: User) -> dict:
     return {
         "id": user.id,
         "username": user.username,
+        "name": user.name,
         "email": user.email,
         "is_admin": user.is_admin,
         "project_ids": [p.id for p in projects],
@@ -72,6 +73,14 @@ def update_me(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if payload.name is not None:
+        if user.is_admin:
+            raise HTTPException(
+                status_code=400, detail="admin 계정은 이메일과 비밀번호만 수정할 수 있습니다."
+            )
+        if not payload.name.strip():
+            raise HTTPException(status_code=400, detail="이름을 입력해주세요.")
+        user.name = payload.name.strip()
     if payload.password is not None:
         if not payload.password:
             raise HTTPException(status_code=400, detail="비밀번호를 입력해주세요.")
@@ -80,6 +89,10 @@ def update_me(
         email = payload.email.strip()
         if not email:
             raise HTTPException(status_code=400, detail="이메일을 입력해주세요.")
+        if not user.is_admin:
+            if db.query(User).filter(User.username == email, User.id != user.id).first():
+                raise HTTPException(status_code=409, detail="이미 등록된 이메일입니다.")
+            user.username = email
         user.email = email
     db.commit()
     db.refresh(user)
@@ -88,12 +101,13 @@ def update_me(
 
 @router.post("/signup-request", status_code=201)
 def signup_request(payload: UserApplicationCreate, db: Session = Depends(get_db)):
-    username = payload.username.strip()
-    if not username:
-        raise HTTPException(status_code=400, detail="Username을 입력해주세요.")
+    name = payload.name.strip()
+    email = payload.email.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="이름을 입력해주세요.")
     if not payload.password:
         raise HTTPException(status_code=400, detail="Password를 입력해주세요.")
-    if not payload.email.strip():
+    if not email:
         raise HTTPException(status_code=400, detail="Email을 입력해주세요.")
     if (
         not payload.security_answer_1.strip()
@@ -101,15 +115,15 @@ def signup_request(payload: UserApplicationCreate, db: Session = Depends(get_db)
         or not payload.security_answer_3.strip()
     ):
         raise HTTPException(status_code=400, detail="비밀번호 초기화 질문 3개에 모두 답변해주세요.")
-    if db.query(User).filter(User.username == username).first():
-        raise HTTPException(status_code=409, detail="같은 Username이 이미 존재합니다.")
-    if db.query(UserApplication).filter(UserApplication.username == username).first():
-        raise HTTPException(status_code=409, detail="이미 동일한 Username으로 신청이 접수되어 있습니다.")
+    if db.query(User).filter(User.username == email).first():
+        raise HTTPException(status_code=409, detail="이미 등록된 이메일입니다.")
+    if db.query(UserApplication).filter(UserApplication.email == email).first():
+        raise HTTPException(status_code=409, detail="이미 동일한 이메일로 신청이 접수되어 있습니다.")
 
     application = UserApplication(
-        username=username,
+        name=name,
         password=payload.password,
-        email=payload.email.strip(),
+        email=email,
         security_answer_1=payload.security_answer_1.strip(),
         security_answer_2=payload.security_answer_2.strip(),
         security_answer_3=payload.security_answer_3.strip(),

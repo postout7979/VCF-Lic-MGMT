@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class UserApplicationCreate(BaseModel):
-    username: str
+    name: str
     password: str
     email: str
     security_answer_1: str
@@ -16,7 +16,7 @@ class UserApplicationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    username: str
+    name: str
     password: str
     email: str
     security_answer_1: str

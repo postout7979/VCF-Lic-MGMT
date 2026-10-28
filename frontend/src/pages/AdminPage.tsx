@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import CspDataTab from "./admin/CspDataTab";
 import LegacyInfraTab from "./admin/LegacyInfraTab";
+import NetworkTab from "./admin/NetworkTab";
 import ProjectAdminTab from "./admin/ProjectAdminTab";
 import SmtpTab from "./admin/SmtpTab";
 import SupplierDataTab from "./admin/SupplierDataTab";
@@ -18,6 +19,7 @@ const TABS = [
   { key: "users", label: "사용자" },
   { key: "user-applications", label: "사용자 승인" },
   { key: "smtp", label: "SMTP" },
+  { key: "network", label: "Network" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -47,6 +49,7 @@ function AdminPage() {
       {activeTab === "users" && <UsersTab />}
       {activeTab === "user-applications" && <UserApplicationsTab />}
       {activeTab === "smtp" && <SmtpTab />}
+      {activeTab === "network" && <NetworkTab />}
     </div>
   );
 }

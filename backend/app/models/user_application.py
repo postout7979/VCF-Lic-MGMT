@@ -9,12 +9,13 @@ from app.core.database import Base
 class UserApplication(Base):
     """A pending self-service signup request submitted from the login page.
     Reviewed from Settings > 사용자 승인; approving one creates the matching
-    User row and removes this record, rejecting just removes it."""
+    User row (whose username becomes this email address) and removes this
+    record, rejecting just removes it."""
 
     __tablename__ = "user_applications"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    username: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
     password: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String, nullable=False)
     security_answer_1: Mapped[str] = mapped_column(String, nullable=False)

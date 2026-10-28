@@ -9,13 +9,15 @@ interface Props {
 
 function SelfAccountModal({ onClose }: Props) {
   const { user, refreshUser } = useAuth();
+  const isAdminAccount = user?.is_admin ?? false;
+  const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = email.trim().length > 0;
+  const canSubmit = email.trim().length > 0 && (isAdminAccount || name.trim().length > 0);
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -24,6 +26,7 @@ function SelfAccountModal({ onClose }: Props) {
     try {
       await updateMe({
         email: email.trim(),
+        ...(isAdminAccount ? {} : { name: name.trim() }),
         ...(password ? { password } : {}),
       });
       await refreshUser();
@@ -45,14 +48,26 @@ function SelfAccountModal({ onClose }: Props) {
             <label>Username</label>
             <input type="text" value={user?.username ?? ""} disabled />
           </div>
+          {!isAdminAccount && (
+            <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+              <label>이름</label>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+          )}
           <div className="form-field" style={{ gridColumn: "1 / -1" }}>
-            <label>Email</label>
+            <label>Email{!isAdminAccount && " (로그인 아이디)"}</label>
             <input
               type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
+          {!isAdminAccount && (
+            <div className="notice-box" style={{ gridColumn: "1 / -1" }}>
+              Email은 로그인 아이디로 사용됩니다. 변경하면 다음 로그인부터 새 이메일을 사용해야
+              합니다.
+            </div>
+          )}
           <div className="form-field" style={{ gridColumn: "1 / -1" }}>
             <label>새 비밀번호</label>
             <div className="form-row" style={{ marginBottom: 0 }}>

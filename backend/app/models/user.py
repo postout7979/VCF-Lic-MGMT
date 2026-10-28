@@ -22,12 +22,18 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    # For the admin account this is the literal "admin". For every other
+    # account it's kept in sync with `email` - non-admin users log in with
+    # their email address.
     username: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     # NOTE: stored in plain text for this internal tool, consistent with the
     # other credential storage here (vCenter/VCF Operations connections);
     # revisit before this is used for real authentication.
     password: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String, nullable=False)
+    # Display name. Collected instead of a username on signup/creation for
+    # non-admin accounts (whose login id is their email instead).
+    name: Mapped[str | None] = mapped_column(String, nullable=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     # Opaque bearer token issued at login; cleared on logout. A single active
     # session per user is enough for this internal tool.

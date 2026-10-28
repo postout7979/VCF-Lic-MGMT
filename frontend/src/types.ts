@@ -142,6 +142,7 @@ export interface VcfOpsCoreLicenseItem {
 export interface User {
   id: number;
   username: string;
+  name: string | null;
   password: string;
   email: string;
   is_admin: boolean;
@@ -161,7 +162,7 @@ export const SECURITY_QUESTIONS: string[] = [
 
 export interface UserApplication {
   id: number;
-  username: string;
+  name: string;
   password: string;
   email: string;
   security_answer_1: string;
@@ -180,9 +181,16 @@ export interface SmtpSettings {
   updated_at: string;
 }
 
+export interface NetworkSettings {
+  dns_server: string;
+  ntp_server: string;
+  updated_at: string;
+}
+
 export interface CurrentUser {
   id: number;
   username: string;
+  name: string | null;
   email: string;
   is_admin: boolean;
   project_ids: number[];
