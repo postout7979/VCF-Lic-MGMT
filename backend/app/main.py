@@ -7,6 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api.auth import router as auth_router
+from app.api.brand import router as brand_router
 from app.api.csp_data import router as csp_data_router
 from app.api.legacy_infra import router as legacy_infra_router
 from app.api.projects import router as projects_router
@@ -20,6 +21,7 @@ from app.core.config import settings
 from app.core.database import Base, SessionLocal, engine
 from app.services.scheduler import scheduler_loop
 from app.models import (  # noqa: F401  (register models with Base)
+    BrandSettings,
     CspLicenseItem,
     LicenseItem,
     NetworkSettings,
@@ -149,6 +151,7 @@ app.include_router(users_router, prefix=settings.api_v1_prefix)
 app.include_router(smtp_settings_router, prefix=settings.api_v1_prefix)
 app.include_router(user_applications_router, prefix=settings.api_v1_prefix)
 app.include_router(network_settings_router, prefix=settings.api_v1_prefix)
+app.include_router(brand_router, prefix=settings.api_v1_prefix)
 
 
 def _seed_admin_user(db: Session) -> None:

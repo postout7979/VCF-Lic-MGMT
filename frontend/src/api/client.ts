@@ -1,4 +1,5 @@
 import type {
+  BrandInfo,
   CspLicenseItem,
   CspLicenseItemPage,
   CurrentUser,
@@ -199,6 +200,33 @@ export function updateNetworkSettings(payload: {
     method: "PUT",
     body: JSON.stringify(payload),
   });
+}
+
+export const BRAND_BACKGROUND_IMAGE_URL = `${BASE}/brand/background-image`;
+export const BRAND_LOGO_IMAGE_URL = `${BASE}/brand/logo-image`;
+
+export function fetchBrandInfo(): Promise<BrandInfo> {
+  return request<BrandInfo>("/brand/info");
+}
+
+export function uploadBrandBackground(file: File): Promise<BrandInfo> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return request<BrandInfo>("/brand/background-image", { method: "POST", body: formData });
+}
+
+export function deleteBrandBackground(): Promise<void> {
+  return request<void>("/brand/background-image", { method: "DELETE" });
+}
+
+export function uploadBrandLogo(file: File): Promise<BrandInfo> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return request<BrandInfo>("/brand/logo-image", { method: "POST", body: formData });
+}
+
+export function deleteBrandLogo(): Promise<void> {
+  return request<void>("/brand/logo-image", { method: "DELETE" });
 }
 
 export function uploadSupplierData(file: File, uploadName: string): Promise<UploadResult> {

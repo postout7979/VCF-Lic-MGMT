@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
+import { BRAND_BACKGROUND_IMAGE_URL, BRAND_LOGO_IMAGE_URL, fetchBrandInfo } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
 import SignupRequestModal from "../components/SignupRequestModal";
+import type { BrandInfo } from "../types";
 
 function LoginPage() {
   const { user, loading, login } = useAuth();
@@ -15,6 +17,13 @@ function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showSignupRequest, setShowSignupRequest] = useState(false);
+  const [brand, setBrand] = useState<BrandInfo | null>(null);
+
+  useEffect(() => {
+    fetchBrandInfo()
+      .then(setBrand)
+      .catch(() => setBrand(null));
+  }, []);
 
   if (loading) {
     return <p className="text-muted" style={{ padding: 24 }}>불러오는 중...</p>;
@@ -42,14 +51,60 @@ function LoginPage() {
     <div
       style={{
         minHeight: "100vh",
+        position: "relative",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         background: "var(--color-bg)",
+        overflow: "hidden",
       }}
     >
-      <form className="card" style={{ width: 360 }} onSubmit={handleSubmit}>
-        <h2 style={{ marginTop: 0, textAlign: "center" }}>VCF License Management</h2>
+      {brand?.has_background_image && (
+        <img
+          src={BRAND_BACKGROUND_IMAGE_URL}
+          alt=""
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            opacity: 0.16,
+          }}
+        />
+      )}
+
+      <div
+        style={{
+          position: "absolute",
+          top: 24,
+          right: 32,
+          fontSize: 16,
+          fontWeight: 700,
+          letterSpacing: "0.01em",
+          color: "var(--color-text-muted)",
+        }}
+      >
+        Broadcom
+      </div>
+
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
+        {brand?.has_logo_image && (
+          <img
+            src={BRAND_LOGO_IMAGE_URL}
+            alt="기업 로고"
+            style={{ maxWidth: 240, maxHeight: 120, objectFit: "contain", marginBottom: 20 }}
+          />
+        )}
+        <form className="card" style={{ width: 360 }} onSubmit={handleSubmit}>
+          <h2 style={{ marginTop: 0, textAlign: "center" }}>VCF License Management</h2>
         <div className="form-field" style={{ marginBottom: 14 }}>
           <label>아이디 (이메일)</label>
           <input
@@ -96,7 +151,23 @@ function LoginPage() {
         >
           사용자 신규 신청
         </button>
-      </form>
+        </form>
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          bottom: 18,
+          left: 0,
+          right: 0,
+          textAlign: "center",
+          fontSize: 12,
+          color: "var(--color-text-muted)",
+        }}
+      >
+        © {new Date().getFullYear()} Broadcom. All rights reserved.
+      </div>
+
       {showForgotPassword && (
         <ForgotPasswordModal onClose={() => setShowForgotPassword(false)} />
       )}

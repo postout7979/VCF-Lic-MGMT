@@ -188,6 +188,12 @@ export interface NetworkSettings {
   updated_at: string;
 }
 
+export interface BrandInfo {
+  has_background_image: boolean;
+  has_logo_image: boolean;
+  updated_at: string;
+}
+
 export interface CurrentUser {
   id: number;
   username: string;
