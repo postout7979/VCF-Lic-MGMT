@@ -64,12 +64,17 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         .scalar()
         or 0
     )
-    vcf_core_capacity = (
-        db.query(func.coalesce(func.sum(VcfOpsCoreLicenseItem.core_capacity), 0))
+    # core_capacity is the entitlement's total pool, repeated on every
+    # vCenter-domain row of that license - dedupe by license_key before
+    # summing so it isn't counted once per domain.
+    vcf_capacity_by_license: dict[str | None, int] = {}
+    for license_key, capacity in (
+        db.query(VcfOpsCoreLicenseItem.license_key, VcfOpsCoreLicenseItem.core_capacity)
         .filter(VcfOpsCoreLicenseItem.project_id == project.id)
-        .scalar()
-        or 0
-    )
+        .all()
+    ):
+        vcf_capacity_by_license[license_key] = capacity or 0
+    vcf_core_capacity = sum(vcf_capacity_by_license.values())
     vcf_core_used = (
         db.query(func.coalesce(func.sum(VcfOpsCoreLicenseItem.core_used), 0))
         .filter(VcfOpsCoreLicenseItem.project_id == project.id)

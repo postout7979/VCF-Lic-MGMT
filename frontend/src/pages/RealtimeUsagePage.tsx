@@ -47,7 +47,14 @@ function RealtimeUsagePage() {
 
   const vcfStats = useMemo(() => {
     const connectionCount = new Set(vcfItems.map((item) => item.connection_name ?? "(알 수 없음)")).size;
-    const coreCapacity = vcfItems.reduce((sum, item) => sum + (item.core_capacity ?? 0), 0);
+    // core_capacity is the entitlement's total pool, repeated on every
+    // vCenter-domain row of that license - dedupe by license_key before
+    // summing so it isn't counted once per domain.
+    const capacityByLicense = new Map<string, number>();
+    for (const item of vcfItems) {
+      if (item.license_key) capacityByLicense.set(item.license_key, item.core_capacity ?? 0);
+    }
+    const coreCapacity = Array.from(capacityByLicense.values()).reduce((sum, v) => sum + v, 0);
     const coreUsed = vcfItems.reduce((sum, item) => sum + (item.core_used ?? 0), 0);
     return { connectionCount, licenseCount: vcfItems.length, coreCapacity, coreUsed };
   }, [vcfItems]);
@@ -59,12 +66,20 @@ function RealtimeUsagePage() {
 
   const stats = useMemo(() => {
     const clusterKeys = new Set(items.map((item) => `${item.vcenter_name}::${item.cluster_name}`));
-    const licenseKeys = new Set(items.map((item) => item.license_key).filter(Boolean));
+    // Perpetual licensing is per-socket; term (subscription) licensing is
+    // per-core actually consumed - same convention as the project summary.
+    const perpetualQuantity = items
+      .filter((item) => item.license_category === "PERPETUAL")
+      .reduce((sum, item) => sum + (item.cpu_sockets ?? 0), 0);
+    const termQuantity = items
+      .filter((item) => item.license_category === "SUBSCRIPTION")
+      .reduce((sum, item) => sum + (item.total_cores ?? 0), 0);
     return {
       vcenterCount: vcenterNames.length,
       clusterCount: clusterKeys.size,
       hostCount: items.length,
-      licenseKeyCount: licenseKeys.size,
+      perpetualQuantity,
+      termQuantity,
     };
   }, [items, vcenterNames]);
 
@@ -75,8 +90,6 @@ function RealtimeUsagePage() {
 
   return (
     <div>
-      <h1 className="page-title">Legacy Infra</h1>
-
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="form-field" style={{ maxWidth: 320 }}>
           <label>프로젝트 선택</label>
@@ -93,6 +106,8 @@ function RealtimeUsagePage() {
           </select>
         </div>
       </div>
+
+      <h1 className="page-title">Legacy Infra</h1>
 
       {loading ? (
         <p className="text-muted">불러오는 중...</p>
@@ -114,8 +129,12 @@ function RealtimeUsagePage() {
               <div className="stat-value">{stats.hostCount}</div>
             </div>
             <div className="stat-card">
-              <div className="stat-label">License Key 수량</div>
-              <div className="stat-value">{stats.licenseKeyCount}</div>
+              <div className="stat-label">Perpetual 수량</div>
+              <div className="stat-value">{stats.perpetualQuantity.toLocaleString()}</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-label">Term 수량</div>
+              <div className="stat-value">{stats.termQuantity.toLocaleString()}</div>
             </div>
           </div>
 
