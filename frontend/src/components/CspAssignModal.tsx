@@ -15,6 +15,7 @@ function CspAssignModal({ project, onClose, onAssigned }: Props) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetchCspData({ assignableForProject: project.id })
@@ -26,9 +27,19 @@ function CspAssignModal({ project, onClose, onAssigned }: Props) {
       .finally(() => setLoading(false));
   }, [project.id]);
 
+  const filteredItems = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return items;
+    return items.filter((item) =>
+      [item.folder_name, item.product_name, item.license_key]
+        .filter(Boolean)
+        .some((field) => field!.toLowerCase().includes(query)),
+    );
+  }, [items, search]);
+
   const allSelected = useMemo(
-    () => items.length > 0 && selected.size === items.length,
-    [items, selected],
+    () => filteredItems.length > 0 && filteredItems.every((item) => selected.has(item.id)),
+    [filteredItems, selected],
   );
 
   function toggle(id: number) {
@@ -41,7 +52,14 @@ function CspAssignModal({ project, onClose, onAssigned }: Props) {
   }
 
   function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(items.map((item) => item.id)));
+    setSelected((prev) => {
+      if (allSelected) {
+        const next = new Set(prev);
+        for (const item of filteredItems) next.delete(item.id);
+        return next;
+      }
+      return new Set([...prev, ...filteredItems.map((item) => item.id)]);
+    });
   }
 
   async function handleAssign() {
@@ -67,12 +85,26 @@ function CspAssignModal({ project, onClose, onAssigned }: Props) {
           체크된 상태로 표시됩니다.
         </p>
         {error && <p className="error-text">{error}</p>}
+        {!loading && items.length > 0 && (
+          <div className="search-bar">
+            <input
+              type="text"
+              placeholder="Folder Name / Product Name / License Key 검색"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        )}
         <div className="modal-scroll">
           {loading ? (
             <p style={{ padding: 16 }}>불러오는 중...</p>
           ) : items.length === 0 ? (
             <p style={{ padding: 16 }} className="text-muted">
               할당 가능한 CSP 항목이 없습니다. CSP 현황 탭에서 먼저 엑셀을 업로드해주세요.
+            </p>
+          ) : filteredItems.length === 0 ? (
+            <p style={{ padding: 16 }} className="text-muted">
+              검색 결과가 없습니다.
             </p>
           ) : (
             <table>
@@ -88,7 +120,7 @@ function CspAssignModal({ project, onClose, onAssigned }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => (
+                {filteredItems.map((item) => (
                   <tr key={item.id}>
                     <td>
                       <input

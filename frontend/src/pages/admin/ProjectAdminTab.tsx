@@ -12,10 +12,13 @@ function ProjectAdminTab() {
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [supplierAssignTarget, setSupplierAssignTarget] = useState<ProjectSummary | null>(null);
   const [vcenterAssignTarget, setVCenterAssignTarget] = useState<ProjectSummary | null>(null);
   const [vcfAssignTarget, setVcfAssignTarget] = useState<ProjectSummary | null>(null);
   const [cspAssignTarget, setCspAssignTarget] = useState<ProjectSummary | null>(null);
+
+  const selectedProject = projects.find((p) => p.id === selectedProjectId) ?? null;
 
   function loadProjects() {
     fetchProjects().then(setProjects).catch(() => undefined);
@@ -70,6 +73,42 @@ function ProjectAdminTab() {
         {error && <p className="error-text">{error}</p>}
       </div>
 
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="form-row" style={{ marginBottom: 0, alignItems: "center" }}>
+          <span className="text-muted">
+            {selectedProject ? `선택됨: ${selectedProject.name}` : "할당할 프로젝트를 아래 목록에서 선택하세요."}
+          </span>
+          <button
+            className="btn btn-secondary"
+            onClick={() => selectedProject && setSupplierAssignTarget(selectedProject)}
+            disabled={!selectedProject}
+          >
+            공급자 할당
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => selectedProject && setVCenterAssignTarget(selectedProject)}
+            disabled={!selectedProject}
+          >
+            vCenter 할당
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => selectedProject && setVcfAssignTarget(selectedProject)}
+            disabled={!selectedProject}
+          >
+            VCF 할당
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => selectedProject && setCspAssignTarget(selectedProject)}
+            disabled={!selectedProject}
+          >
+            CSP 할당
+          </button>
+        </div>
+      </div>
+
       <div className="card">
         <table>
           <thead>
@@ -105,7 +144,13 @@ function ProjectAdminTab() {
           </thead>
           <tbody>
             {projects.map((project) => (
-              <tr key={project.id}>
+              <tr
+                key={project.id}
+                className={`clickable${project.id === selectedProjectId ? " selected-row" : ""}`}
+                onClick={() =>
+                  setSelectedProjectId((prev) => (prev === project.id ? null : project.id))
+                }
+              >
                 <td>{project.name}</td>
                 <td>{new Date(project.created_at).toLocaleDateString()}</td>
                 <td>{project.item_count}</td>
@@ -118,26 +163,14 @@ function ProjectAdminTab() {
                 <td>{project.vcf_core_capacity.toLocaleString()}</td>
                 <td>{project.vcf_core_used.toLocaleString()}</td>
                 <td>{project.csp_license_count}</td>
-                <td style={{ display: "flex", gap: 6 }}>
+                <td>
                   <button
-                    className="btn btn-secondary"
-                    onClick={() => setSupplierAssignTarget(project)}
+                    className="btn btn-danger"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(project);
+                    }}
                   >
-                    공급자 할당
-                  </button>
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => setVCenterAssignTarget(project)}
-                  >
-                    vCenter 할당
-                  </button>
-                  <button className="btn btn-secondary" onClick={() => setVcfAssignTarget(project)}>
-                    VCF 할당
-                  </button>
-                  <button className="btn btn-secondary" onClick={() => setCspAssignTarget(project)}>
-                    CSP 할당
-                  </button>
-                  <button className="btn btn-danger" onClick={() => handleDelete(project)}>
                     삭제
                   </button>
                 </td>

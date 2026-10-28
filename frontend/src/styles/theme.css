@@ -203,6 +203,11 @@ tbody tr.clickable {
   cursor: pointer;
 }
 
+tbody tr.selected-row td {
+  background: #eef1fb;
+  box-shadow: inset 2px 0 0 var(--color-primary);
+}
+
 .badge {
   display: inline-block;
   padding: 3px 10px;

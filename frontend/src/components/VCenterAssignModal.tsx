@@ -45,6 +45,7 @@ function VCenterAssignModal({ project, onClose, onAssigned }: Props) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetchVCenterItems({ assignableForProject: project.id })
@@ -56,9 +57,19 @@ function VCenterAssignModal({ project, onClose, onAssigned }: Props) {
       .finally(() => setLoading(false));
   }, [project.id]);
 
+  const query = search.trim().toLowerCase();
+  const filteredItems = useMemo(() => {
+    if (!query) return items;
+    return items.filter((item) =>
+      [item.host_name, item.cluster_name, item.vcenter_name, item.license_key]
+        .filter(Boolean)
+        .some((field) => field!.toLowerCase().includes(query)),
+    );
+  }, [items, query]);
+
   const groups = useMemo<VCenterGroup[]>(() => {
     const byVCenter = new Map<string, VCenterGroup>();
-    for (const item of items) {
+    for (const item of filteredItems) {
       const vcenterName = item.vcenter_name ?? "(알 수 없음)";
       const clusterName = item.cluster_name ?? "(알 수 없음)";
       if (!byVCenter.has(vcenterName)) {
@@ -74,7 +85,7 @@ function VCenterAssignModal({ project, onClose, onAssigned }: Props) {
       cGroup.hosts.push(item);
     }
     return Array.from(byVCenter.values());
-  }, [items]);
+  }, [filteredItems]);
 
   function toggleHost(id: number) {
     setSelected((prev) => {
@@ -134,19 +145,33 @@ function VCenterAssignModal({ project, onClose, onAssigned }: Props) {
           클릭하면 하위 목록이 펼쳐집니다.
         </p>
         {error && <p className="error-text">{error}</p>}
+        {!loading && items.length > 0 && (
+          <div className="search-bar">
+            <input
+              type="text"
+              placeholder="vCenter / Cluster / Host / License Key 검색"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        )}
         <div className="modal-scroll">
           {loading ? (
             <p style={{ padding: 16 }}>불러오는 중...</p>
-          ) : groups.length === 0 ? (
+          ) : items.length === 0 ? (
             <p style={{ padding: 16 }} className="text-muted">
               할당 가능한 vCenter 항목이 없습니다. Legacy Infra 탭에서 먼저 vCenter 어답터를
               연결해주세요.
+            </p>
+          ) : groups.length === 0 ? (
+            <p style={{ padding: 16 }} className="text-muted">
+              검색 결과가 없습니다.
             </p>
           ) : (
             <div className="vc-tree">
               {groups.map((vGroup) => {
                 const vKey = vGroup.vcenterName;
-                const vExpanded = expandedVCenters.has(vKey);
+                const vExpanded = query ? true : expandedVCenters.has(vKey);
                 const vState = selectionState(vGroup.hosts);
                 return (
                   <div key={vKey}>
@@ -173,7 +198,7 @@ function VCenterAssignModal({ project, onClose, onAssigned }: Props) {
                     {vExpanded &&
                       vGroup.clusters.map((cGroup) => {
                         const cKey = `${vKey}::${cGroup.clusterName}`;
-                        const cExpanded = expandedClusters.has(cKey);
+                        const cExpanded = query ? true : expandedClusters.has(cKey);
                         const cState = selectionState(cGroup.hosts);
                         return (
                           <div key={cKey}>

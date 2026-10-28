@@ -37,6 +37,7 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetchVcfOpsItems({ assignableForProject: project.id })
@@ -49,9 +50,19 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
       .finally(() => setLoading(false));
   }, [project.id]);
 
+  const query = search.trim().toLowerCase();
+  const filteredItems = useMemo(() => {
+    if (!query) return items;
+    return items.filter((item) =>
+      [item.connection_name, item.license_key, item.license_type, item.domain_name]
+        .filter(Boolean)
+        .some((field) => field!.toLowerCase().includes(query)),
+    );
+  }, [items, query]);
+
   const groups = useMemo<ConnectionGroup[]>(() => {
     const byConnection = new Map<string, ConnectionGroup>();
-    for (const item of items) {
+    for (const item of filteredItems) {
       const connectionName = item.connection_name ?? "(알 수 없음)";
       if (!byConnection.has(connectionName)) {
         byConnection.set(connectionName, { connectionName, items: [] });
@@ -59,7 +70,7 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
       byConnection.get(connectionName)!.items.push(item);
     }
     return Array.from(byConnection.values());
-  }, [items]);
+  }, [filteredItems]);
 
   function toggleItem(id: number) {
     setSelected((prev) => {
@@ -121,19 +132,33 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
           하위 목록이 펼쳐집니다.
         </p>
         {error && <p className="error-text">{error}</p>}
+        {!loading && items.length > 0 && (
+          <div className="search-bar">
+            <input
+              type="text"
+              placeholder="연결 / License Key / License Type / Domain 검색"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        )}
         <div className="modal-scroll">
           {loading ? (
             <p style={{ padding: 16 }}>불러오는 중...</p>
-          ) : groups.length === 0 ? (
+          ) : items.length === 0 ? (
             <p style={{ padding: 16 }} className="text-muted">
               할당 가능한 VCF 항목이 없습니다. 설정 &gt; VCF 탭에서 먼저 VCF Operations 연결을
               추가해주세요.
+            </p>
+          ) : groups.length === 0 ? (
+            <p style={{ padding: 16 }} className="text-muted">
+              검색 결과가 없습니다.
             </p>
           ) : (
             <div className="vc-tree">
               {groups.map((group) => {
                 const gKey = group.connectionName;
-                const gExpanded = expanded.has(gKey);
+                const gExpanded = query ? true : expanded.has(gKey);
                 const gState = selectionState(group.items);
                 return (
                   <div key={gKey}>
