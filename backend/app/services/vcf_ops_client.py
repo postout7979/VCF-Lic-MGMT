@@ -220,24 +220,49 @@ def _collect_entitlements_via_browser(base: str, username: str, password: str) -
     for entry in body.get("entitlementWithVcentersDetails", []):
         info = entry.get("entitlementInfo", {})
         vcenters = entry.get("assignedVcenters", [])
-        domain_name = (
-            ", ".join(
-                v.get("vcenterInfo", {}).get("adapterName") or v.get("vcenterInfo", {}).get("host") or "?"
-                for v in vcenters
+        license_key = info.get("productDisplayName") or info.get("name")
+        license_type = f"{info.get('type', '-')} ({info.get('unitOfMeasure', '-')})"
+        core_capacity = info.get("capacity")
+        # vcAdapterName on an issue identifies which vCenter it's about (eg.
+        # "UNLICENSED_ASSET" for that domain specifically); fall back to
+        # unlicensedUsage below for vCenters an issue entry doesn't name.
+        issue_vcenters = {
+            issue.get("vcAdapterName") for issue in (info.get("issues") or []) if issue.get("vcAdapterName")
+        }
+
+        if not vcenters:
+            rows.append(
+                {
+                    "license_key": license_key,
+                    "license_type": license_type,
+                    "license_status": "이슈 있음" if info.get("issues") else "정상",
+                    "domain_name": None,
+                    "core_capacity": core_capacity,
+                    "core_used": info.get("usage"),
+                }
             )
-            or None
-        )
-        issues = info.get("issues") or []
-        rows.append(
-            {
-                "license_key": info.get("productDisplayName") or info.get("name"),
-                "license_type": f"{info.get('type', '-')} ({info.get('unitOfMeasure', '-')})",
-                "license_status": "이슈 있음" if issues else "정상",
-                "domain_name": domain_name,
-                "core_capacity": info.get("capacity"),
-                "core_used": info.get("usage"),
-            }
-        )
+            continue
+
+        # One row per vCenter this license is assigned to (matches the
+        # product UI's own "vCenter Systems" breakdown under a license),
+        # rather than one combined row per license with domain names joined
+        # together - core_capacity is still the entitlement's total pool
+        # (shared across its vCenters), but core_used here is that vCenter's
+        # own licensedUsage.
+        for v in vcenters:
+            vcenter_info = v.get("vcenterInfo", {})
+            domain_name = vcenter_info.get("adapterName") or vcenter_info.get("host") or "?"
+            has_issue = (v.get("unlicensedUsage") or 0) > 0 or domain_name in issue_vcenters
+            rows.append(
+                {
+                    "license_key": license_key,
+                    "license_type": license_type,
+                    "license_status": "이슈 있음" if has_issue else "정상",
+                    "domain_name": domain_name,
+                    "core_capacity": core_capacity,
+                    "core_used": v.get("licensedUsage"),
+                }
+            )
     return rows
 
 

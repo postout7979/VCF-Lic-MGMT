@@ -48,27 +48,29 @@ def _sync_connection(connection: VcfOpsConnection, db: Session) -> None:
         db.commit()
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    # Upsert by license_key so an existing project assignment survives a
-    # re-sync instead of being wiped out by a delete-then-recreate.
+    # Upsert by (license_key, domain_name) - one license now expands into one
+    # row per assigned vCenter, so license_key alone is no longer unique -
+    # so an existing project assignment survives a re-sync instead of being
+    # wiped out by a delete-then-recreate.
     existing_by_key = {
-        item.license_key: item
+        (item.license_key, item.domain_name): item
         for item in db.query(VcfOpsCoreLicenseItem).filter(
             VcfOpsCoreLicenseItem.connection_id == connection.id
         )
     }
-    seen_keys: set[str | None] = set()
+    seen_keys: set[tuple[str | None, str | None]] = set()
     for row in rows:
-        license_key = row.get("license_key")
-        seen_keys.add(license_key)
-        existing = existing_by_key.get(license_key)
+        key = (row.get("license_key"), row.get("domain_name"))
+        seen_keys.add(key)
+        existing = existing_by_key.get(key)
         if existing is not None:
-            for key, value in row.items():
-                setattr(existing, key, value)
+            for field, value in row.items():
+                setattr(existing, field, value)
         else:
             db.add(VcfOpsCoreLicenseItem(connection_id=connection.id, **row))
 
-    for license_key, item in existing_by_key.items():
-        if license_key not in seen_keys:
+    for key, item in existing_by_key.items():
+        if key not in seen_keys:
             db.delete(item)
 
     connection.status = "connected"
@@ -124,7 +126,7 @@ def get_inventory(connection_id: int, db: Session = Depends(get_db)):
     return (
         db.query(VcfOpsCoreLicenseItem)
         .filter(VcfOpsCoreLicenseItem.connection_id == connection_id)
-        .order_by(VcfOpsCoreLicenseItem.domain_name, VcfOpsCoreLicenseItem.license_key)
+        .order_by(VcfOpsCoreLicenseItem.license_key, VcfOpsCoreLicenseItem.domain_name)
         .all()
     )
 
