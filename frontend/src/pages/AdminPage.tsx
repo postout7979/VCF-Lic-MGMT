@@ -4,6 +4,7 @@ import CspDataTab from "./admin/CspDataTab";
 import LegacyInfraTab from "./admin/LegacyInfraTab";
 import ProjectAdminTab from "./admin/ProjectAdminTab";
 import SupplierDataTab from "./admin/SupplierDataTab";
+import UsersTab from "./admin/UsersTab";
 import VcfOpsTab from "./admin/VcfOpsTab";
 
 const TABS = [
@@ -12,6 +13,7 @@ const TABS = [
   { key: "csp-data", label: "CSP 현황" },
   { key: "legacy-infra", label: "Legacy Infra" },
   { key: "vcf-ops", label: "VCF" },
+  { key: "users", label: "사용자" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -38,6 +40,7 @@ function AdminPage() {
       {activeTab === "csp-data" && <CspDataTab />}
       {activeTab === "legacy-infra" && <LegacyInfraTab />}
       {activeTab === "vcf-ops" && <VcfOpsTab />}
+      {activeTab === "users" && <UsersTab />}
     </div>
   );
 }

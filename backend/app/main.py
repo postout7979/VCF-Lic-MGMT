@@ -6,6 +6,7 @@ from app.api.csp_data import router as csp_data_router
 from app.api.legacy_infra import router as legacy_infra_router
 from app.api.projects import router as projects_router
 from app.api.supplier_data import router as supplier_data_router
+from app.api.users import router as users_router
 from app.api.vcf_ops import router as vcf_ops_router
 from app.core.config import settings
 from app.core.database import Base, engine
@@ -13,6 +14,7 @@ from app.models import (  # noqa: F401  (register models with Base)
     CspLicenseItem,
     LicenseItem,
     Project,
+    User,
     VCenterConnection,
     VCenterInventoryItem,
     VcfOpsConnection,
@@ -62,6 +64,7 @@ app.include_router(projects_router, prefix=settings.api_v1_prefix)
 app.include_router(legacy_infra_router, prefix=settings.api_v1_prefix)
 app.include_router(vcf_ops_router, prefix=settings.api_v1_prefix)
 app.include_router(csp_data_router, prefix=settings.api_v1_prefix)
+app.include_router(users_router, prefix=settings.api_v1_prefix)
 
 
 @app.on_event("startup")

@@ -87,6 +87,12 @@ button {
   border-left-color: var(--color-sidebar-active);
 }
 
+.sidebar-link-bottom {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .main-panel {
   flex: 1;
   padding: 28px 36px;

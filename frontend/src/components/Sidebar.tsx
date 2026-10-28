@@ -1,12 +1,13 @@
 import { NavLink } from "react-router-dom";
 
 const NAV_ITEMS = [
-  { to: "/admin", label: "설정" },
   { to: "/license-overview", label: "라이센스 종합 현황" },
   { to: "/realtime-usage", label: "실시간 사용 현황" },
   { to: "/projects", label: "공급자 현황" },
   { to: "/csp-status", label: "CSP 현황" },
 ];
+
+const SETTINGS_ITEM = { to: "/admin", label: "설정" };
 
 function Sidebar() {
   return (
@@ -21,6 +22,12 @@ function Sidebar() {
           {item.label}
         </NavLink>
       ))}
+      <NavLink
+        to={SETTINGS_ITEM.to}
+        className={({ isActive }) => `sidebar-link sidebar-link-bottom${isActive ? " active" : ""}`}
+      >
+        {SETTINGS_ITEM.label}
+      </NavLink>
     </nav>
   );
 }

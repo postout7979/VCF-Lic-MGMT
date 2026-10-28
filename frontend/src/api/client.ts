@@ -7,6 +7,7 @@ import type {
   ProjectSummary,
   UploadBatch,
   UploadResult,
+  User,
   VCenterConnection,
   VCenterInventoryItem,
   VCenterVersionHint,
@@ -308,5 +309,41 @@ export function assignVcfOpsItemsToProject(
   return request<number[]>(`/projects/${projectId}/assign-vcf-ops`, {
     method: "POST",
     body: JSON.stringify({ item_ids: itemIds }),
+  });
+}
+
+export function fetchUsers(): Promise<User[]> {
+  return request<User[]>("/users");
+}
+
+export function createUser(payload: {
+  username: string;
+  password: string;
+  email: string;
+}): Promise<User> {
+  return request<User>("/users", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateUser(
+  userId: number,
+  payload: { username?: string; password?: string; email?: string },
+): Promise<User> {
+  return request<User>(`/users/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteUser(userId: number): Promise<void> {
+  return request<void>(`/users/${userId}`, { method: "DELETE" });
+}
+
+export function assignUserProject(userId: number, projectId: number | null): Promise<User> {
+  return request<User>(`/users/${userId}/assign-project`, {
+    method: "POST",
+    body: JSON.stringify({ project_id: projectId }),
   });
 }

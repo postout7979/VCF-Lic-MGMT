@@ -132,6 +132,16 @@ export interface VcfOpsCoreLicenseItem {
   project_id: number | null;
 }
 
+export interface User {
+  id: number;
+  username: string;
+  password: string;
+  email: string;
+  project_id: number | null;
+  project_name: string | null;
+  created_at: string;
+}
+
 export interface CspLicenseItem {
   id: number;
   upload_name: string;

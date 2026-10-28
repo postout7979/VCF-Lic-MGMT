@@ -1,0 +1,135 @@
+import { useEffect, useState } from "react";
+
+import { deleteUser, fetchUsers } from "../../api/client";
+import UserAssignProjectModal from "../../components/UserAssignProjectModal";
+import UserFormModal from "../../components/UserFormModal";
+import type { User } from "../../types";
+
+function UsersTab() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState<Set<number>>(new Set());
+  const [formTarget, setFormTarget] = useState<User | "new" | null>(null);
+  const [assignTarget, setAssignTarget] = useState<User | null>(null);
+
+  function loadUsers() {
+    fetchUsers()
+      .then(setUsers)
+      .catch(() => setError("사용자 목록을 불러오지 못했습니다."))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  function toggleReveal(id: number) {
+    setRevealed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleDelete(user: User) {
+    if (!window.confirm(`${user.username} 사용자를 삭제할까요?`)) return;
+    try {
+      await deleteUser(user.id);
+      loadUsers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "삭제에 실패했습니다.");
+    }
+  }
+
+  return (
+    <div>
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="form-row" style={{ marginBottom: 0, justifyContent: "space-between" }}>
+          <p className="text-muted" style={{ margin: 0 }}>
+            사용자 계정 정보를 관리합니다. 로그인 기능은 아직 구현되지 않았습니다.
+          </p>
+          <button className="btn" onClick={() => setFormTarget("new")}>
+            사용자 추가
+          </button>
+        </div>
+      </div>
+
+      {error && <p className="error-text">{error}</p>}
+
+      <div className="card">
+        {loading ? (
+          <p className="text-muted">불러오는 중...</p>
+        ) : users.length === 0 ? (
+          <p className="text-muted">등록된 사용자가 없습니다.</p>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Password</th>
+                  <th>Email</th>
+                  <th>프로젝트</th>
+                  <th>생성일</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id}>
+                    <td>{user.username}</td>
+                    <td>
+                      <span style={{ fontFamily: "monospace", marginRight: 8 }}>
+                        {revealed.has(user.id) ? user.password : "•".repeat(10)}
+                      </span>
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: "3px 10px", fontSize: 12 }}
+                        onClick={() => toggleReveal(user.id)}
+                      >
+                        {revealed.has(user.id) ? "숨기기" : "보기"}
+                      </button>
+                    </td>
+                    <td>{user.email}</td>
+                    <td>{user.project_name ?? "미할당"}</td>
+                    <td>{new Date(user.created_at).toLocaleDateString()}</td>
+                    <td style={{ display: "flex", gap: 6 }}>
+                      <button className="btn btn-secondary" onClick={() => setFormTarget(user)}>
+                        수정
+                      </button>
+                      <button className="btn btn-secondary" onClick={() => setAssignTarget(user)}>
+                        프로젝트 할당
+                      </button>
+                      <button className="btn btn-danger" onClick={() => handleDelete(user)}>
+                        삭제
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {formTarget && (
+        <UserFormModal
+          user={formTarget === "new" ? null : formTarget}
+          onClose={() => setFormTarget(null)}
+          onSaved={loadUsers}
+        />
+      )}
+      {assignTarget && (
+        <UserAssignProjectModal
+          user={assignTarget}
+          onClose={() => setAssignTarget(null)}
+          onAssigned={loadUsers}
+        />
+      )}
+    </div>
+  );
+}
+
+export default UsersTab;

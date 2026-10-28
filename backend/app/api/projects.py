@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.models.csp_data import CspLicenseItem
 from app.models.license_item import LicenseItem
 from app.models.project import Project
+from app.models.user import User
 from app.models.vcenter import VCenterInventoryItem
 from app.models.vcf_ops import VcfOpsCoreLicenseItem
 from app.schemas.license_item import AssignItemsRequest
@@ -178,6 +179,7 @@ def delete_project(project_id: int, db: Session = Depends(get_db)):
     db.query(CspLicenseItem).filter(CspLicenseItem.project_id == project_id).update(
         {"project_id": None}
     )
+    db.query(User).filter(User.project_id == project_id).update({"project_id": None})
     db.delete(project)
     db.commit()
 
