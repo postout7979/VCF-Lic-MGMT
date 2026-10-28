@@ -11,8 +11,8 @@ class CurrentUser(BaseModel):
     username: str
     email: str
     is_admin: bool
-    project_id: int | None
-    project_name: str | None
+    project_ids: list[int] = []
+    project_names: list[str] = []
 
 
 class LoginResponse(CurrentUser):

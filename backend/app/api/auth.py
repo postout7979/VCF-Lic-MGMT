@@ -3,18 +3,22 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import generate_session_token, get_current_user
 from app.core.database import get_db
-from app.models.project import Project
 from app.models.user import User
 from app.schemas.auth import CurrentUser, LoginRequest, LoginResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def _project_name(db: Session, user: User) -> str | None:
-    if user.project_id is None:
-        return None
-    project = db.get(Project, user.project_id)
-    return project.name if project else None
+def _current_user_fields(user: User) -> dict:
+    projects = sorted(user.projects, key=lambda p: p.name)
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "is_admin": user.is_admin,
+        "project_ids": [p.id for p in projects],
+        "project_names": [p.name for p in projects],
+    }
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -25,15 +29,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     user.session_token = generate_session_token()
     db.commit()
     db.refresh(user)
-    return LoginResponse(
-        id=user.id,
-        username=user.username,
-        email=user.email,
-        is_admin=user.is_admin,
-        project_id=user.project_id,
-        project_name=_project_name(db, user),
-        token=user.session_token,
-    )
+    return LoginResponse(**_current_user_fields(user), token=user.session_token)
 
 
 @router.post("/logout", status_code=204)
@@ -43,12 +39,5 @@ def logout(user: User = Depends(get_current_user), db: Session = Depends(get_db)
 
 
 @router.get("/me", response_model=CurrentUser)
-def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return CurrentUser(
-        id=user.id,
-        username=user.username,
-        email=user.email,
-        is_admin=user.is_admin,
-        project_id=user.project_id,
-        project_name=_project_name(db, user),
-    )
+def me(user: User = Depends(get_current_user)):
+    return CurrentUser(**_current_user_fields(user))

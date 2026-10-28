@@ -101,7 +101,13 @@ function UsersTab() {
                       </button>
                     </td>
                     <td>{user.email}</td>
-                    <td>{user.project_name ?? "미할당"}</td>
+                    <td>
+                      {user.is_admin
+                        ? "전체"
+                        : user.project_names.length > 0
+                          ? user.project_names.join(", ")
+                          : "미할당"}
+                    </td>
                     <td>{new Date(user.created_at).toLocaleDateString()}</td>
                     <td style={{ display: "flex", gap: 6 }}>
                       <button className="btn btn-secondary" onClick={() => setFormTarget(user)}>

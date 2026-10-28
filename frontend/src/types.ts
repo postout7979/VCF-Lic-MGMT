@@ -145,8 +145,8 @@ export interface User {
   password: string;
   email: string;
   is_admin: boolean;
-  project_id: number | null;
-  project_name: string | null;
+  project_ids: number[];
+  project_names: string[];
   created_at: string;
 }
 
@@ -155,8 +155,8 @@ export interface CurrentUser {
   username: string;
   email: string;
   is_admin: boolean;
-  project_id: number | null;
-  project_name: string | null;
+  project_ids: number[];
+  project_names: string[];
 }
 
 export interface CspLicenseItem {

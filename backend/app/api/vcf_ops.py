@@ -185,9 +185,10 @@ def list_vcf_ops_items(
 ):
     query = db.query(VcfOpsCoreLicenseItem)
     if not current_user.is_admin:
-        if current_user.project_id is None:
+        project_ids = [p.id for p in current_user.projects]
+        if not project_ids:
             return []
-        return query.filter(VcfOpsCoreLicenseItem.project_id == current_user.project_id).order_by(
+        return query.filter(VcfOpsCoreLicenseItem.project_id.in_(project_ids)).order_by(
             VcfOpsCoreLicenseItem.connection_id, VcfOpsCoreLicenseItem.license_key
         ).all()
     if assigned_to_project is not None:

@@ -4,25 +4,22 @@ from sqlalchemy.orm import Session
 from app.core.auth import require_admin
 from app.core.database import get_db
 from app.models.project import Project
-from app.models.user import User
+from app.models.user import User, user_project_assignments
 from app.schemas.user import AssignUserProjectRequest, UserCreate, UserRead, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(require_admin)])
 
 
 def _to_read(user: User, db: Session) -> UserRead:
-    project_name = None
-    if user.project_id is not None:
-        project = db.get(Project, user.project_id)
-        project_name = project.name if project else None
+    projects = sorted(user.projects, key=lambda p: p.name)
     return UserRead(
         id=user.id,
         username=user.username,
         password=user.password,
         email=user.email,
         is_admin=user.is_admin,
-        project_id=user.project_id,
-        project_name=project_name,
+        project_ids=[p.id for p in projects],
+        project_names=[p.name for p in projects],
         created_at=user.created_at,
     )
 
@@ -100,6 +97,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
     if user.is_admin:
         raise HTTPException(status_code=400, detail="admin 계정은 삭제할 수 없습니다.")
+    db.execute(user_project_assignments.delete().where(user_project_assignments.c.user_id == user_id))
     db.delete(user)
     db.commit()
 
@@ -112,10 +110,14 @@ def assign_user_project(
     if user is None:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
 
-    if payload.project_id is not None and db.get(Project, payload.project_id) is None:
-        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+    desired_ids = set(payload.project_ids)
+    projects = db.query(Project).filter(Project.id.in_(desired_ids)).all() if desired_ids else []
+    found_ids = {p.id for p in projects}
+    missing_ids = desired_ids - found_ids
+    if missing_ids:
+        raise HTTPException(status_code=404, detail=f"존재하지 않는 프로젝트: {sorted(missing_ids)}")
 
-    user.project_id = payload.project_id
+    user.projects = projects
     db.commit()
     db.refresh(user)
     return _to_read(user, db)

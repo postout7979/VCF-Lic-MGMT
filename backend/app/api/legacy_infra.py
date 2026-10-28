@@ -193,11 +193,12 @@ def list_vcenter_items(
 ):
     query = db.query(VCenterInventoryItem)
     if not current_user.is_admin:
-        # Non-admins may only ever see their own assigned project's items -
+        # Non-admins may only ever see their own assigned projects' items -
         # the assignment-picker params are an admin-only concept.
-        if current_user.project_id is None:
+        project_ids = [p.id for p in current_user.projects]
+        if not project_ids:
             return []
-        return query.filter(VCenterInventoryItem.project_id == current_user.project_id).order_by(
+        return query.filter(VCenterInventoryItem.project_id.in_(project_ids)).order_by(
             VCenterInventoryItem.vcenter_name, VCenterInventoryItem.cluster_name, VCenterInventoryItem.host_name
         ).all()
     if assigned_to_project is not None:

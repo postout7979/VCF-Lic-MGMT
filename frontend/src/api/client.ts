@@ -398,9 +398,9 @@ export function deleteUser(userId: number): Promise<void> {
   return request<void>(`/users/${userId}`, { method: "DELETE" });
 }
 
-export function assignUserProject(userId: number, projectId: number | null): Promise<User> {
+export function assignUserProject(userId: number, projectIds: number[]): Promise<User> {
   return request<User>(`/users/${userId}/assign-project`, {
     method: "POST",
-    body: JSON.stringify({ project_id: projectId }),
+    body: JSON.stringify({ project_ids: projectIds }),
   });
 }

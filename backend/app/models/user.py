@@ -1,16 +1,23 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Table
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+user_project_assignments = Table(
+    "user_project_assignments",
+    Base.metadata,
+    Column("user_id", ForeignKey("users.id"), primary_key=True),
+    Column("project_id", ForeignKey("projects.id"), primary_key=True),
+)
 
 
 class User(Base):
     """A user record managed from Settings > 사용자, and also a login account.
     The seeded "admin" user (is_admin=True) has access to every menu;
-    everyone else is restricted to their assigned project and cannot see
-    Settings."""
+    everyone else is restricted to their assigned project(s) (zero or more,
+    via user_project_assignments) and cannot see Settings."""
 
     __tablename__ = "users"
 
@@ -25,8 +32,9 @@ class User(Base):
     # Opaque bearer token issued at login; cleared on logout. A single active
     # session per user is enough for this internal tool.
     session_token: Mapped[str | None] = mapped_column(String, nullable=True, unique=True, index=True)
-    project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
+
+    projects = relationship("Project", secondary=user_project_assignments)

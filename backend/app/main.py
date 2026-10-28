@@ -64,6 +64,24 @@ SCHEMA_PATCHES = [
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS session_token VARCHAR",
     "ALTER TABLE vcenter_connections ADD COLUMN IF NOT EXISTS sync_interval_minutes INTEGER NOT NULL DEFAULT 60",
     "ALTER TABLE vcf_ops_connections ADD COLUMN IF NOT EXISTS sync_interval_minutes INTEGER NOT NULL DEFAULT 60",
+    # Users can now be assigned to multiple projects (user_project_assignments,
+    # created by create_all above) instead of a single project_id column;
+    # backfill existing single assignments into the new table, then drop the
+    # old column. Guarded so it's a no-op once project_id is gone.
+    """
+    DO $$
+    BEGIN
+        IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'users' AND column_name = 'project_id'
+        ) THEN
+            INSERT INTO user_project_assignments (user_id, project_id)
+            SELECT id, project_id FROM users WHERE project_id IS NOT NULL
+            ON CONFLICT DO NOTHING;
+            ALTER TABLE users DROP COLUMN project_id;
+        END IF;
+    END $$;
+    """,
 ]
 
 app = FastAPI(title="VCF License Management")

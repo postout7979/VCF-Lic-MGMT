@@ -23,10 +23,10 @@ class UserRead(BaseModel):
     password: str
     email: str
     is_admin: bool = False
-    project_id: int | None
-    project_name: str | None = None
+    project_ids: list[int] = []
+    project_names: list[str] = []
     created_at: datetime
 
 
 class AssignUserProjectRequest(BaseModel):
-    project_id: int | None
+    project_ids: list[int]

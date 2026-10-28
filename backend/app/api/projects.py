@@ -9,7 +9,7 @@ from app.core.database import get_db
 from app.models.csp_data import CspLicenseItem
 from app.models.license_item import LicenseItem
 from app.models.project import Project
-from app.models.user import User
+from app.models.user import User, user_project_assignments
 from app.models.vcenter import VCenterInventoryItem
 from app.models.vcf_ops import VcfOpsCoreLicenseItem
 from app.schemas.license_item import AssignItemsRequest
@@ -108,7 +108,10 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         or 0
     )
     user_count = (
-        db.query(func.count(User.id)).filter(User.project_id == project.id).scalar() or 0
+        db.query(func.count(user_project_assignments.c.user_id))
+        .filter(user_project_assignments.c.project_id == project.id)
+        .scalar()
+        or 0
     )
     return ProjectSummary(
         id=project.id,
@@ -170,9 +173,10 @@ def _reconcile_assignment(db: Session, model, project_id: int, desired_ids: set[
 def list_projects(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     query = db.query(Project)
     if not current_user.is_admin:
-        if current_user.project_id is None:
+        project_ids = [p.id for p in current_user.projects]
+        if not project_ids:
             return []
-        query = query.filter(Project.id == current_user.project_id)
+        query = query.filter(Project.id.in_(project_ids))
     projects = query.order_by(Project.created_at.desc()).all()
     return [_to_summary(db, project) for project in projects]
 
@@ -212,7 +216,11 @@ def delete_project(
     db.query(CspLicenseItem).filter(CspLicenseItem.project_id == project_id).update(
         {"project_id": None}
     )
-    db.query(User).filter(User.project_id == project_id).update({"project_id": None})
+    db.execute(
+        user_project_assignments.delete().where(
+            user_project_assignments.c.project_id == project_id
+        )
+    )
     db.delete(project)
     db.commit()
 
@@ -226,7 +234,7 @@ def get_project(
     project = db.get(Project, project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
-    if not current_user.is_admin and project_id != current_user.project_id:
+    if not current_user.is_admin and project_id not in {p.id for p in current_user.projects}:
         raise HTTPException(status_code=403, detail="이 프로젝트에 접근할 권한이 없습니다.")
     summary = _to_summary(db, project)
     items = (

@@ -45,7 +45,9 @@ function Sidebar() {
       <div className="sidebar-user">
         <div className="sidebar-user-name">
           {user?.username}
-          {user?.project_name && <span className="sidebar-user-project">{user.project_name}</span>}
+          {user && user.project_names.length > 0 && (
+            <span className="sidebar-user-project">{user.project_names.join(", ")}</span>
+          )}
         </div>
         <button className="sidebar-logout" onClick={handleLogout}>
           로그아웃
