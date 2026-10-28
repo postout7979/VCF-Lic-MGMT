@@ -30,7 +30,12 @@ function App() {
             path="/csp-status"
             element={
               <div>
-                <h1 className="page-title">CSP 현황</h1>
+                <h1 className="page-title" style={{ marginBottom: 2 }}>
+                  CSP 현황
+                </h1>
+                <p className="text-muted" style={{ marginTop: 0, marginBottom: 18 }}>
+                  (Customer support portal)
+                </p>
                 <CspStatusPage />
               </div>
             }

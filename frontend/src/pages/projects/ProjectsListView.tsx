@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 
 import { fetchProjectDetail, fetchProjects } from "../../api/client";
+import ListControls from "../../components/ListControls";
 import LicenseTypeBadge from "../../components/LicenseTypeBadge";
+import Pagination from "../../components/Pagination";
+import { useListControls } from "../../hooks/useListControls";
 import type { ProjectDetail, ProjectSummary } from "../../types";
 
 function ProjectsListView() {
@@ -10,6 +13,20 @@ function ProjectsListView() {
   const [detail, setDetail] = useState<ProjectDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const licenseItems = detail?.license_items ?? [];
+  const list = useListControls(licenseItems, (item, query) =>
+    [
+      item.serial_number,
+      item.parent_customer,
+      item.customer_name,
+      item.enduser_account_name,
+      item.product_name,
+      item.erp_site_id,
+    ]
+      .filter(Boolean)
+      .some((field) => field!.toLowerCase().includes(query)),
+  );
 
   useEffect(() => {
     fetchProjects().then((data) => {
@@ -73,9 +90,14 @@ function ProjectsListView() {
           </div>
 
           <div className="card">
-            <p className="text-muted" style={{ marginTop: 0 }}>
-              할당된 항목 {detail.license_items.length}건
-            </p>
+            <ListControls
+              search={list.search}
+              onSearchChange={list.setSearch}
+              pageSize={list.pageSize}
+              onPageSizeChange={list.setPageSize}
+              total={list.total}
+              placeholder="Serial Number / Customer / Product Name / ERP Site ID 검색"
+            />
             <div style={{ overflowX: "auto" }}>
               <table>
                 <thead>
@@ -96,7 +118,7 @@ function ProjectsListView() {
                   </tr>
                 </thead>
                 <tbody>
-                  {detail.license_items.map((item) => (
+                  {list.pageItems.map((item) => (
                     <tr key={item.id}>
                       <td>{item.serial_number}</td>
                       <td>{item.parent_customer}</td>
@@ -118,6 +140,11 @@ function ProjectsListView() {
                 </tbody>
               </table>
             </div>
+            <Pagination
+              currentPage={list.page}
+              totalPages={list.totalPages}
+              onPageChange={list.setPage}
+            />
           </div>
         </>
       )}

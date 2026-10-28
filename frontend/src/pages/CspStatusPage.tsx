@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 
 import { fetchCspData, fetchProjects } from "../api/client";
+import ListControls from "../components/ListControls";
+import Pagination from "../components/Pagination";
+import { useListControls } from "../hooks/useListControls";
 import type { CspLicenseItem, ProjectSummary } from "../types";
 
 function isExpired(endDate: string | null): boolean {
@@ -33,6 +36,12 @@ function CspStatusPage() {
   }, [selectedProjectId]);
 
   const folderCount = new Set(items.map((item) => item.folder_name ?? "(알 수 없음)")).size;
+
+  const list = useListControls(items, (item, query) =>
+    [item.folder_name, item.product_name, item.license_key]
+      .filter(Boolean)
+      .some((field) => field!.toLowerCase().includes(query)),
+  );
 
   return (
     <div>
@@ -83,35 +92,50 @@ function CspStatusPage() {
             </div>
           ) : (
             <div className="card">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Folder Name</th>
-                    <th>Product Name</th>
-                    <th>License Key</th>
-                    <th>Quantity</th>
-                    <th>Unit</th>
-                    <th>Contract End Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.folder_name ?? "-"}</td>
-                      <td>{item.product_name ?? "-"}</td>
-                      <td>{item.license_key ?? "-"}</td>
-                      <td>{item.quantity.toLocaleString()}</td>
-                      <td>{item.unit ?? "-"}</td>
-                      <td>
-                        {item.contract_end_date ?? "-"}{" "}
-                        {isExpired(item.contract_end_date) && (
-                          <span className="badge badge-error">만료</span>
-                        )}
-                      </td>
+              <ListControls
+                search={list.search}
+                onSearchChange={list.setSearch}
+                pageSize={list.pageSize}
+                onPageSizeChange={list.setPageSize}
+                total={list.total}
+                placeholder="Folder Name / Product Name / License Key 검색"
+              />
+              <div style={{ overflowX: "auto" }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Folder Name</th>
+                      <th>Product Name</th>
+                      <th>License Key</th>
+                      <th>Quantity</th>
+                      <th>Unit</th>
+                      <th>Contract End Date</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {list.pageItems.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.folder_name ?? "-"}</td>
+                        <td>{item.product_name ?? "-"}</td>
+                        <td>{item.license_key ?? "-"}</td>
+                        <td>{item.quantity.toLocaleString()}</td>
+                        <td>{item.unit ?? "-"}</td>
+                        <td>
+                          {item.contract_end_date ?? "-"}{" "}
+                          {isExpired(item.contract_end_date) && (
+                            <span className="badge badge-error">만료</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination
+                currentPage={list.page}
+                totalPages={list.totalPages}
+                onPageChange={list.setPage}
+              />
             </div>
           )}
         </>

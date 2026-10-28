@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { fetchProjects, fetchVCenterItems, fetchVcfOpsItems } from "../api/client";
+import ListControls from "../components/ListControls";
 import LicenseTypeBadge from "../components/LicenseTypeBadge";
+import Pagination from "../components/Pagination";
+import { useListControls } from "../hooks/useListControls";
 import type { ProjectSummary, VCenterInventoryItem, VcfOpsCoreLicenseItem } from "../types";
 
 type InfraType = "legacy" | "vcf";
@@ -83,6 +86,18 @@ function RealtimeUsagePage() {
     };
   }, [items]);
 
+  const legacyList = useListControls(items, (item, query) =>
+    [item.vcenter_name, item.cluster_name, item.host_name, item.license_key]
+      .filter(Boolean)
+      .some((field) => field!.toLowerCase().includes(query)),
+  );
+
+  const vcfList = useListControls(vcfItems, (item, query) =>
+    [item.connection_name, item.domain_name, item.license_key, item.license_type, item.license_status]
+      .filter(Boolean)
+      .some((field) => field!.toLowerCase().includes(query)),
+  );
+
   return (
     <div>
       <div className="card" style={{ marginBottom: 20 }}>
@@ -158,6 +173,14 @@ function RealtimeUsagePage() {
               </div>
             ) : (
               <div className="card">
+                <ListControls
+                  search={legacyList.search}
+                  onSearchChange={legacyList.setSearch}
+                  pageSize={legacyList.pageSize}
+                  onPageSizeChange={legacyList.setPageSize}
+                  total={legacyList.total}
+                  placeholder="vCenter / Cluster / Host / License Key 검색"
+                />
                 <div style={{ overflowX: "auto" }}>
                   <table>
                     <thead>
@@ -170,7 +193,7 @@ function RealtimeUsagePage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {items.map((item) => (
+                      {legacyList.pageItems.map((item) => (
                         <tr key={item.id}>
                           <td>{item.vcenter_name ?? "-"}</td>
                           <td>{item.cluster_name}</td>
@@ -188,6 +211,11 @@ function RealtimeUsagePage() {
                     </tbody>
                   </table>
                 </div>
+                <Pagination
+                  currentPage={legacyList.page}
+                  totalPages={legacyList.totalPages}
+                  onPageChange={legacyList.setPage}
+                />
               </div>
             )}
           </>
@@ -224,6 +252,14 @@ function RealtimeUsagePage() {
             </div>
           ) : (
             <div className="card">
+              <ListControls
+                search={vcfList.search}
+                onSearchChange={vcfList.setSearch}
+                pageSize={vcfList.pageSize}
+                onPageSizeChange={vcfList.setPageSize}
+                total={vcfList.total}
+                placeholder="연결 / Domain / License Key / License Type 검색"
+              />
               <div style={{ overflowX: "auto" }}>
                 <table>
                   <thead>
@@ -239,7 +275,7 @@ function RealtimeUsagePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {vcfItems.map((item) => {
+                    {vcfList.pageItems.map((item) => {
                       const mismatch =
                         item.verified_core_used !== null &&
                         item.verified_core_used !== item.core_used;
@@ -261,6 +297,11 @@ function RealtimeUsagePage() {
                   </tbody>
                 </table>
               </div>
+              <Pagination
+                currentPage={vcfList.page}
+                totalPages={vcfList.totalPages}
+                onPageChange={vcfList.setPage}
+              />
             </div>
           )}
         </>
