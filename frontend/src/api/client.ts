@@ -242,6 +242,37 @@ export function resetEnvironment(): Promise<void> {
   return request<void>("/system/reset", { method: "POST" });
 }
 
+export async function downloadBackup(): Promise<void> {
+  const token = getAuthToken();
+  const res = await fetch(`${BASE}/backup/export`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (res.status === 401) {
+    setAuthToken(null);
+    window.dispatchEvent(new Event("auth:unauthorized"));
+    throw new Error("로그인이 필요합니다.");
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.detail ?? `백업 다운로드에 실패했습니다 (${res.status})`);
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition") ?? "";
+  const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? "vcf-lic-mgmt-backup.sql";
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export function importBackup(file: File): Promise<void> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return request<void>("/backup/import", { method: "POST", body: formData });
+}
+
 export function uploadSupplierData(file: File, uploadName: string): Promise<UploadResult> {
   const formData = new FormData();
   formData.append("file", file);

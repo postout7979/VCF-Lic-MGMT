@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { resetEnvironment } from "../api/client";
+import BackupTab from "./admin/BackupTab";
 import BrandTab from "./admin/BrandTab";
 import CspDataTab from "./admin/CspDataTab";
 import LegacyInfraTab from "./admin/LegacyInfraTab";
@@ -23,6 +24,7 @@ const TABS = [
   { key: "smtp", label: "SMTP" },
   { key: "network", label: "Network" },
   { key: "brand", label: "브랜드" },
+  { key: "backup", label: "백업" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -90,6 +92,7 @@ function AdminPage() {
       {activeTab === "smtp" && <SmtpTab />}
       {activeTab === "network" && <NetworkTab />}
       {activeTab === "brand" && <BrandTab />}
+      {activeTab === "backup" && <BackupTab />}
     </div>
   );
 }

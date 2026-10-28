@@ -7,6 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api.auth import router as auth_router
+from app.api.backup import router as backup_router
 from app.api.brand import router as brand_router
 from app.api.csp_data import router as csp_data_router
 from app.api.legacy_infra import router as legacy_infra_router
@@ -160,6 +161,7 @@ app.include_router(user_applications_router, prefix=settings.api_v1_prefix)
 app.include_router(network_settings_router, prefix=settings.api_v1_prefix)
 app.include_router(brand_router, prefix=settings.api_v1_prefix)
 app.include_router(system_router, prefix=settings.api_v1_prefix)
+app.include_router(backup_router, prefix=settings.api_v1_prefix)
 
 
 def _seed_admin_user(db: Session) -> None:
