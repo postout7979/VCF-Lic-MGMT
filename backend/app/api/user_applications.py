@@ -3,8 +3,10 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import require_admin
 from app.core.database import get_db
+from app.models.approval_record import ApprovalRecord
 from app.models.user import User
 from app.models.user_application import UserApplication
+from app.schemas.approval_record import ApprovalRecordRead
 from app.schemas.user import UserRead
 from app.schemas.user_application import UserApplicationRead
 
@@ -18,6 +20,11 @@ router = APIRouter(
 @router.get("", response_model=list[UserApplicationRead])
 def list_applications(db: Session = Depends(get_db)):
     return db.query(UserApplication).order_by(UserApplication.created_at.desc()).all()
+
+
+@router.get("/approval-records", response_model=list[ApprovalRecordRead])
+def list_approval_records(db: Session = Depends(get_db)):
+    return db.query(ApprovalRecord).order_by(ApprovalRecord.approved_at.desc()).all()
 
 
 @router.post("/{application_id}/approve", response_model=UserRead)
@@ -38,6 +45,7 @@ def approve_application(application_id: int, db: Session = Depends(get_db)):
         security_answer_3=application.security_answer_3,
     )
     db.add(user)
+    db.add(ApprovalRecord(name=application.name, email=application.email))
     db.delete(application)
     db.commit()
     db.refresh(user)

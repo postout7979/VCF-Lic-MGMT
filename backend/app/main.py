@@ -14,6 +14,7 @@ from app.api.projects import router as projects_router
 from app.api.network_settings import router as network_settings_router
 from app.api.smtp_settings import router as smtp_settings_router
 from app.api.supplier_data import router as supplier_data_router
+from app.api.system import router as system_router
 from app.api.user_applications import router as user_applications_router
 from app.api.users import router as users_router
 from app.api.vcf_ops import router as vcf_ops_router
@@ -126,6 +127,12 @@ SCHEMA_PATCHES = [
     # Per-user visibility toggle for the "공급자 현황" sidebar menu
     # (non-admin only; admin always sees it regardless of this flag).
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS show_supplier_menu BOOLEAN NOT NULL DEFAULT false",
+    # Brand settings: a permanent default background/logo, restorable via
+    # Settings > 브랜드's reset button.
+    "ALTER TABLE brand_settings ADD COLUMN IF NOT EXISTS default_background_image BYTEA",
+    "ALTER TABLE brand_settings ADD COLUMN IF NOT EXISTS default_background_image_mimetype VARCHAR",
+    "ALTER TABLE brand_settings ADD COLUMN IF NOT EXISTS default_logo_image BYTEA",
+    "ALTER TABLE brand_settings ADD COLUMN IF NOT EXISTS default_logo_image_mimetype VARCHAR",
 ]
 
 _RANDOM_HIRE_YEARS = [str(y) for y in range(2008, 2024)]
@@ -152,6 +159,7 @@ app.include_router(smtp_settings_router, prefix=settings.api_v1_prefix)
 app.include_router(user_applications_router, prefix=settings.api_v1_prefix)
 app.include_router(network_settings_router, prefix=settings.api_v1_prefix)
 app.include_router(brand_router, prefix=settings.api_v1_prefix)
+app.include_router(system_router, prefix=settings.api_v1_prefix)
 
 
 def _seed_admin_user(db: Session) -> None:
@@ -183,6 +191,28 @@ def _migrate_username_to_email(db: Session) -> None:
         if user.username != user.email:
             user.username = user.email
     db.commit()
+
+
+def _snapshot_brand_defaults(db: Session) -> None:
+    """One-time: whatever background/logo is live right now becomes the
+    permanent default that Settings > 브랜드's reset button restores to.
+    Later uploads only replace the live image, never this snapshot."""
+    from app.models.brand_settings import BrandSettings
+
+    settings = db.get(BrandSettings, 1)
+    if settings is None:
+        return
+    changed = False
+    if settings.background_image is not None and settings.default_background_image is None:
+        settings.default_background_image = settings.background_image
+        settings.default_background_image_mimetype = settings.background_image_mimetype
+        changed = True
+    if settings.logo_image is not None and settings.default_logo_image is None:
+        settings.default_logo_image = settings.logo_image
+        settings.default_logo_image_mimetype = settings.logo_image_mimetype
+        changed = True
+    if changed:
+        db.commit()
 
 
 def _backfill_security_answers(db: Session) -> None:
@@ -225,6 +255,7 @@ def on_startup():
         _seed_admin_user(db)
         _migrate_username_to_email(db)
         _backfill_security_answers(db)
+        _snapshot_brand_defaults(db)
     finally:
         db.close()
 

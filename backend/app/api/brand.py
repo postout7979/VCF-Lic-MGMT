@@ -30,6 +30,8 @@ def _to_info(settings: BrandSettings) -> BrandInfoResponse:
     return BrandInfoResponse(
         has_background_image=settings.background_image is not None,
         has_logo_image=settings.logo_image is not None,
+        has_default_background_image=settings.default_background_image is not None,
+        has_default_logo_image=settings.default_logo_image is not None,
         updated_at=settings.updated_at,
     )
 
@@ -115,3 +117,17 @@ def delete_logo_image(db: Session = Depends(get_db)):
     settings.logo_image = None
     settings.logo_image_mimetype = None
     db.commit()
+
+
+@router.post(
+    "/reset-to-default", response_model=BrandInfoResponse, dependencies=[Depends(require_admin)]
+)
+def reset_to_default(db: Session = Depends(get_db)):
+    settings = _get_or_create(db)
+    settings.background_image = settings.default_background_image
+    settings.background_image_mimetype = settings.default_background_image_mimetype
+    settings.logo_image = settings.default_logo_image
+    settings.logo_image_mimetype = settings.default_logo_image_mimetype
+    db.commit()
+    db.refresh(settings)
+    return _to_info(settings)

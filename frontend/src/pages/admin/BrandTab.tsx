@@ -6,6 +6,7 @@ import {
   deleteBrandBackground,
   deleteBrandLogo,
   fetchBrandInfo,
+  resetBrandToDefault,
   uploadBrandBackground,
   uploadBrandLogo,
 } from "../../api/client";
@@ -17,6 +18,7 @@ function BrandTab() {
   const [error, setError] = useState<string | null>(null);
   const [uploadingBackground, setUploadingBackground] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [cacheBust, setCacheBust] = useState(() => Date.now());
   const backgroundInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -86,6 +88,27 @@ function BrandTab() {
     }
   }
 
+  async function handleResetToDefault() {
+    if (
+      !window.confirm(
+        "배경화면과 기업 로고를 기본 이미지로 되돌릴까요? 현재 이미지는 사라집니다.",
+      )
+    ) {
+      return;
+    }
+    setResetting(true);
+    setError(null);
+    try {
+      const result = await resetBrandToDefault();
+      setInfo(result);
+      setCacheBust(Date.now());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "초기화에 실패했습니다.");
+    } finally {
+      setResetting(false);
+    }
+  }
+
   if (loading) {
     return <p className="text-muted">불러오는 중...</p>;
   }
@@ -93,6 +116,18 @@ function BrandTab() {
   return (
     <div>
       {error && <p className="error-text">{error}</p>}
+
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="form-row" style={{ marginBottom: 0, justifyContent: "flex-end" }}>
+          <button
+            className="btn btn-secondary"
+            onClick={handleResetToDefault}
+            disabled={resetting}
+          >
+            {resetting ? "초기화 중..." : "배경화면 및 기업 로고 초기화"}
+          </button>
+        </div>
+      </div>
 
       <div className="card" style={{ marginBottom: 20 }}>
         <p className="text-muted" style={{ marginTop: 0 }}>

@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 
 import {
   approveUserApplication,
+  fetchApprovalRecords,
   fetchUserApplications,
   rejectUserApplication,
 } from "../../api/client";
-import type { UserApplication } from "../../types";
+import type { ApprovalRecord, UserApplication } from "../../types";
 
 function UserApplicationsTab() {
   const [applications, setApplications] = useState<UserApplication[]>([]);
+  const [approvalRecords, setApprovalRecords] = useState<ApprovalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [revealed, setRevealed] = useState<Set<number>>(new Set());
@@ -21,8 +23,15 @@ function UserApplicationsTab() {
       .finally(() => setLoading(false));
   }
 
+  function loadApprovalRecords() {
+    fetchApprovalRecords()
+      .then(setApprovalRecords)
+      .catch(() => undefined);
+  }
+
   useEffect(() => {
     loadApplications();
+    loadApprovalRecords();
   }, []);
 
   function toggleReveal(id: number) {
@@ -41,6 +50,7 @@ function UserApplicationsTab() {
     try {
       await approveUserApplication(application.id);
       loadApplications();
+      loadApprovalRecords();
     } catch (err) {
       setError(err instanceof Error ? err.message : "승인에 실패했습니다.");
     } finally {
@@ -124,6 +134,36 @@ function UserApplicationsTab() {
                         거절
                       </button>
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{ marginTop: 20 }}>
+        <p className="text-muted" style={{ marginTop: 0 }}>
+          승인 기록 (최근 순)
+        </p>
+        {approvalRecords.length === 0 ? (
+          <p className="text-muted">승인 기록이 없습니다.</p>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>이름</th>
+                  <th>Email</th>
+                  <th>승인일시</th>
+                </tr>
+              </thead>
+              <tbody>
+                {approvalRecords.map((record) => (
+                  <tr key={record.id}>
+                    <td>{record.name}</td>
+                    <td>{record.email}</td>
+                    <td>{new Date(record.approved_at).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

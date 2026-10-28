@@ -143,6 +143,10 @@ function SupplierDataTab() {
   return (
     <div>
       <div className="card" style={{ marginBottom: 20 }}>
+        <p className="text-muted" style={{ marginTop: 0 }}>
+          이 업로드 데이터는 BROADCOM 영업 자료로 사용되는 Incorta OPROD의 License Management
+          Data의 export 자료를 사용합니다.
+        </p>
         <div className="form-row" style={{ justifyContent: "space-between" }}>
           <div className="form-row" style={{ marginBottom: 0 }}>
             <input

@@ -1,3 +1,4 @@
+from app.models.approval_record import ApprovalRecord
 from app.models.brand_settings import BrandSettings
 from app.models.csp_data import CspLicenseItem
 from app.models.license_item import LicenseItem
@@ -10,6 +11,7 @@ from app.models.vcenter import VCenterConnection, VCenterInventoryItem
 from app.models.vcf_ops import VcfOpsConnection, VcfOpsCoreLicenseItem
 
 __all__ = [
+    "ApprovalRecord",
     "BrandSettings",
     "CspLicenseItem",
     "LicenseItem",

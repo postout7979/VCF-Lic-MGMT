@@ -172,6 +172,13 @@ export interface UserApplication {
   created_at: string;
 }
 
+export interface ApprovalRecord {
+  id: number;
+  name: string;
+  email: string;
+  approved_at: string;
+}
+
 export interface SmtpSettings {
   host: string;
   port: number;
@@ -191,6 +198,8 @@ export interface NetworkSettings {
 export interface BrandInfo {
   has_background_image: boolean;
   has_logo_image: boolean;
+  has_default_background_image: boolean;
+  has_default_logo_image: boolean;
   updated_at: string;
 }
 

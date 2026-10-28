@@ -1,4 +1,5 @@
 import type {
+  ApprovalRecord,
   BrandInfo,
   CspLicenseItem,
   CspLicenseItemPage,
@@ -106,6 +107,10 @@ export function approveUserApplication(applicationId: number): Promise<User> {
 
 export function rejectUserApplication(applicationId: number): Promise<void> {
   return request<void>(`/user-applications/${applicationId}`, { method: "DELETE" });
+}
+
+export function fetchApprovalRecords(): Promise<ApprovalRecord[]> {
+  return request<ApprovalRecord[]>("/user-applications/approval-records");
 }
 
 export function generateRecoveryKey(): Promise<{ recovery_key: string }> {
@@ -227,6 +232,14 @@ export function uploadBrandLogo(file: File): Promise<BrandInfo> {
 
 export function deleteBrandLogo(): Promise<void> {
   return request<void>("/brand/logo-image", { method: "DELETE" });
+}
+
+export function resetBrandToDefault(): Promise<BrandInfo> {
+  return request<BrandInfo>("/brand/reset-to-default", { method: "POST" });
+}
+
+export function resetEnvironment(): Promise<void> {
+  return request<void>("/system/reset", { method: "POST" });
 }
 
 export function uploadSupplierData(file: File, uploadName: string): Promise<UploadResult> {
