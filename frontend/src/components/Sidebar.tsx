@@ -5,7 +5,8 @@ import { useAuth } from "../auth/AuthContext";
 import SelfAccountModal from "./SelfAccountModal";
 
 const NAV_ITEMS = [
-  { to: "/license-overview", label: "라이센스 종합 현황" },
+  { to: "/license-overview-all", label: "라이센스 전체 현황", adminOnly: true },
+  { to: "/license-overview", label: "프로젝트 현황" },
   { to: "/realtime-usage", label: "실시간 사용 현황" },
   { to: "/projects", label: "공급자 현황", supplierOnly: true },
   { to: "/csp-status", label: "Customer Support Portal 현황" },
@@ -43,7 +44,9 @@ function Sidebar() {
 
       <p className="sidebar-title">VCF License Management</p>
       {NAV_ITEMS.filter(
-        (item) => !item.supplierOnly || user?.is_admin || user?.show_supplier_menu,
+        (item) =>
+          (!item.supplierOnly || user?.is_admin || user?.show_supplier_menu) &&
+          (!item.adminOnly || user?.is_admin),
       ).map((item) => (
         <NavLink
           key={item.to}

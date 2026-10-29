@@ -1,20 +1,33 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-import { fetchProjects } from "../api/client";
-import DonutChart from "../components/DonutChart";
+import {
+  fetchCspData,
+  fetchProjectDetail,
+  fetchProjects,
+  fetchVCenterItems,
+  fetchVcfOpsItems,
+} from "../api/client";
 import ListControls from "../components/ListControls";
+import LicenseStatusCharts from "../components/LicenseStatusCharts";
 import Pagination from "../components/Pagination";
 import { useListControls } from "../hooks/useListControls";
-import type { ProjectSummary } from "../types";
+import type { CspLicenseItem, LicenseItem, ProjectSummary, VCenterInventoryItem, VcfOpsCoreLicenseItem } from "../types";
 
-const COLOR_PRIMARY = "#2563eb";
-const COLOR_ORANGE = "#eb6834";
-const COLOR_TRACK = "#e1e0d9";
-const COLOR_RED = "#dc2626";
+// Non-admin users get all of their accessible projects' items back from a
+// single call regardless of the assignedToProject filter (server-side
+// shortcut), so looping per project can hand back the same row more than
+// once - dedupe by id before counting.
+function dedupeById<T extends { id: number }>(items: T[]): T[] {
+  return Array.from(new Map(items.map((item) => [item.id, item])).values());
+}
 
 function LicenseOverviewPage() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [supplierItems, setSupplierItems] = useState<LicenseItem[]>([]);
+  const [cspItems, setCspItems] = useState<CspLicenseItem[]>([]);
+  const [vcenterItems, setVcenterItems] = useState<VCenterInventoryItem[]>([]);
+  const [vcfItems, setVcfItems] = useState<VcfOpsCoreLicenseItem[]>([]);
 
   useEffect(() => {
     fetchProjects()
@@ -22,44 +35,38 @@ function LicenseOverviewPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const totals = useMemo(
-    () =>
-      projects.reduce(
-        (acc, p) => ({
-          perpetual: acc.perpetual + p.perpetual_quantity,
-          subscription: acc.subscription + p.subscription_quantity,
-          vcenterPerpetual: acc.vcenterPerpetual + p.vcenter_perpetual_quantity,
-          vcenterTerm: acc.vcenterTerm + p.vcenter_term_quantity,
-          vcfCapacity: acc.vcfCapacity + p.vcf_core_capacity,
-          vcfUsed: acc.vcfUsed + p.vcf_core_used,
-          cspCoreQuantity: acc.cspCoreQuantity + p.csp_core_quantity,
-          cspCoreQuantityExpired: acc.cspCoreQuantityExpired + p.csp_core_quantity_expired,
-        }),
-        {
-          perpetual: 0,
-          subscription: 0,
-          vcenterPerpetual: 0,
-          vcenterTerm: 0,
-          vcfCapacity: 0,
-          vcfUsed: 0,
-          cspCoreQuantity: 0,
-          cspCoreQuantityExpired: 0,
-        },
+  useEffect(() => {
+    if (projects.length === 0) {
+      setSupplierItems([]);
+      setCspItems([]);
+      setVcenterItems([]);
+      setVcfItems([]);
+      return;
+    }
+    Promise.all(
+      projects.map((project) =>
+        Promise.all([
+          fetchProjectDetail(project.id),
+          fetchCspData({ assignedToProject: project.id }),
+          fetchVCenterItems({ assignedToProject: project.id }),
+          fetchVcfOpsItems({ assignedToProject: project.id }),
+        ]),
       ),
-    [projects],
-  );
+    ).then((results) => {
+      setSupplierItems(results.flatMap(([detail]) => detail.license_items));
+      setCspItems(dedupeById(results.flatMap(([, csp]) => csp)));
+      setVcenterItems(dedupeById(results.flatMap(([, , vcenter]) => vcenter)));
+      setVcfItems(dedupeById(results.flatMap(([, , , vcf]) => vcf)));
+    });
+  }, [projects]);
 
-  const list = useListControls(projects, (project, query) =>
-    project.name.toLowerCase().includes(query),
-  );
-
-  const vcfRemaining = Math.max(totals.vcfCapacity - totals.vcfUsed, 0);
-  const vcfUsageRate =
-    totals.vcfCapacity > 0 ? Math.round((totals.vcfUsed / totals.vcfCapacity) * 100) : 0;
+  const list = useListControls(projects, [
+    { value: "name", label: "프로젝트명", getValue: (project) => project.name },
+  ]);
 
   return (
     <div>
-      <h1 className="page-title">라이센스 종합 현황</h1>
+      <h1 className="page-title">프로젝트 현황</h1>
 
       {loading ? (
         <p className="text-muted">불러오는 중...</p>
@@ -70,54 +77,19 @@ function LicenseOverviewPage() {
       ) : (
         <>
           <div className="dashboard-grid">
-            <div className="donut-grid">
-              <DonutChart
-                title="공급자 라이센스 현황"
-                segments={[
-                  { label: "Perpetual", value: totals.perpetual, color: COLOR_PRIMARY },
-                  { label: "Subscription", value: totals.subscription, color: COLOR_ORANGE },
-                ]}
-                centerValue={(totals.perpetual + totals.subscription).toLocaleString()}
-                centerLabel="합계 수량"
-              />
-              <DonutChart
-                title="CSP 현황"
-                segments={[
-                  {
-                    label: "유효",
-                    value: totals.cspCoreQuantity - totals.cspCoreQuantityExpired,
-                    color: COLOR_PRIMARY,
-                  },
-                  { label: "만료", value: totals.cspCoreQuantityExpired, color: COLOR_RED },
-                ]}
-                centerValue={totals.cspCoreQuantity.toLocaleString()}
-                centerLabel="코어 수 합계"
-              />
-              <DonutChart
-                title="Legacy 사용 현황"
-                segments={[
-                  { label: "Perpetual", value: totals.vcenterPerpetual, color: COLOR_PRIMARY },
-                  { label: "Term", value: totals.vcenterTerm, color: COLOR_ORANGE },
-                ]}
-                centerValue={(totals.vcenterPerpetual + totals.vcenterTerm).toLocaleString()}
-                centerLabel="합계 수량"
-              />
-              <DonutChart
-                title="VCF 코어 사용 현황"
-                segments={[
-                  { label: "사용 코어", value: totals.vcfUsed, color: COLOR_PRIMARY },
-                  { label: "여유 코어", value: vcfRemaining, color: COLOR_TRACK },
-                ]}
-                centerValue={`${vcfUsageRate}%`}
-                centerLabel={`${totals.vcfUsed.toLocaleString()} / ${totals.vcfCapacity.toLocaleString()}`}
-              />
-            </div>
+            <LicenseStatusCharts
+              supplierItems={supplierItems}
+              cspItems={cspItems}
+              vcenterItems={vcenterItems}
+              vcfItems={vcfItems}
+            />
           </div>
 
           <div className="card">
             <ListControls
-              search={list.search}
-              onSearchChange={list.setSearch}
+              fields={list.fields}
+              filters={list.filters}
+              onFiltersChange={list.setFilters}
               pageSize={list.pageSize}
               onPageSizeChange={list.setPageSize}
               total={list.total}

@@ -8,6 +8,13 @@ from app.schemas.license_item import LicenseItemRead
 class ProjectCreate(BaseModel):
     name: str
     description: str | None = None
+    location: str | None = None
+    user_ids: list[int] = []
+
+
+class ProjectUpdate(BaseModel):
+    name: str | None = None
+    location: str | None = None
 
 
 class ProjectSummary(BaseModel):
@@ -16,6 +23,7 @@ class ProjectSummary(BaseModel):
     id: int
     name: str
     description: str | None
+    location: str | None
     created_at: datetime
     perpetual_quantity: int
     subscription_quantity: int

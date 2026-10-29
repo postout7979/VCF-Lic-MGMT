@@ -69,8 +69,8 @@ function RealtimeUsagePage() {
   const stats = useMemo(() => {
     const vcenterNames = new Set(items.map((item) => item.vcenter_name ?? "(알 수 없음)"));
     const clusterKeys = new Set(items.map((item) => `${item.vcenter_name}::${item.cluster_name}`));
-    // Perpetual licensing is per-socket; term (subscription) licensing is
-    // per-core actually consumed - same convention as the project summary.
+    // Perpetual licensing is per-CPU; term licensing is per-core - same
+    // convention as the project summary.
     const perpetualQuantity = items
       .filter((item) => item.license_category === "PERPETUAL")
       .reduce((sum, item) => sum + (item.cpu_sockets ?? 0), 0);
@@ -86,17 +86,20 @@ function RealtimeUsagePage() {
     };
   }, [items]);
 
-  const legacyList = useListControls(items, (item, query) =>
-    [item.vcenter_name, item.cluster_name, item.host_name, item.license_key]
-      .filter(Boolean)
-      .some((field) => field!.toLowerCase().includes(query)),
-  );
+  const legacyList = useListControls(items, [
+    { value: "vcenter_name", label: "vCenter", getValue: (item) => item.vcenter_name },
+    { value: "cluster_name", label: "Cluster Name", getValue: (item) => item.cluster_name },
+    { value: "host_name", label: "Host Name", getValue: (item) => item.host_name },
+    { value: "license_key", label: "License Key", getValue: (item) => item.license_key },
+  ]);
 
-  const vcfList = useListControls(vcfItems, (item, query) =>
-    [item.connection_name, item.domain_name, item.license_key, item.license_type, item.license_status]
-      .filter(Boolean)
-      .some((field) => field!.toLowerCase().includes(query)),
-  );
+  const vcfList = useListControls(vcfItems, [
+    { value: "connection_name", label: "연결", getValue: (item) => item.connection_name },
+    { value: "domain_name", label: "Domain", getValue: (item) => item.domain_name },
+    { value: "license_key", label: "License Key", getValue: (item) => item.license_key },
+    { value: "license_type", label: "License Type", getValue: (item) => item.license_type },
+    { value: "license_status", label: "License Status", getValue: (item) => item.license_status },
+  ]);
 
   return (
     <div>
@@ -164,12 +167,13 @@ function RealtimeUsagePage() {
                   ]}
                 />
                 <ListControls
-                  search={legacyList.search}
-                  onSearchChange={legacyList.setSearch}
+                  fields={legacyList.fields}
+                  filters={legacyList.filters}
+                  onFiltersChange={legacyList.setFilters}
                   pageSize={legacyList.pageSize}
                   onPageSizeChange={legacyList.setPageSize}
                   total={legacyList.total}
-                  placeholder="vCenter / Cluster / Host / License Key 검색"
+                  placeholder="검색어를 입력하세요"
                 />
                 <div style={{ overflowX: "auto" }}>
                   <table>
@@ -230,12 +234,13 @@ function RealtimeUsagePage() {
                 ]}
               />
               <ListControls
-                search={vcfList.search}
-                onSearchChange={vcfList.setSearch}
+                fields={vcfList.fields}
+                filters={vcfList.filters}
+                onFiltersChange={vcfList.setFilters}
                 pageSize={vcfList.pageSize}
                 onPageSizeChange={vcfList.setPageSize}
                 total={vcfList.total}
-                placeholder="연결 / Domain / License Key / License Type 검색"
+                placeholder="검색어를 입력하세요"
               />
               <div style={{ overflowX: "auto" }}>
                 <table>

@@ -1,5 +1,6 @@
 import io
 import math
+from datetime import date
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile
 from sqlalchemy import func
@@ -65,6 +66,14 @@ def upload_supplier_data(
 @router.delete("", status_code=204)
 def delete_all_supplier_data(db: Session = Depends(get_db), _: User = Depends(require_admin)):
     db.query(LicenseItem).delete()
+    db.commit()
+
+
+@router.delete("/expired", status_code=204)
+def delete_expired_supplier_data(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    db.query(LicenseItem).filter(
+        LicenseItem.end_date.is_not(None), LicenseItem.end_date < date.today()
+    ).delete(synchronize_session=False)
     db.commit()
 
 

@@ -1,19 +1,40 @@
 import { useMemo, useState } from "react";
 
-export const PAGE_SIZE_OPTIONS = [15, 30, 50] as const;
+export const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
 
-/** Client-side search + page-size pagination over an already-fetched list. */
-export function useListControls<T>(items: T[], matches: (item: T, query: string) => boolean) {
-  const [search, setSearchState] = useState("");
+export interface SearchFieldDef<T> {
+  value: string;
+  label: string;
+  getValue: (item: T) => string | null | undefined;
+}
+
+export interface FilterCondition {
+  field: string;
+  value: string;
+}
+
+/** Client-side multi-filter search + page-size pagination over an
+ * already-fetched list. Each active filter is a (field, value) pair; an
+ * item must match every active filter's substring (AND) to stay in the
+ * result - so adding a filter always narrows whatever is already showing. */
+export function useListControls<T>(items: T[], fields: SearchFieldDef<T>[]) {
+  const [filters, setFiltersState] = useState<FilterCondition[]>([]);
   const [pageSize, setPageSizeState] = useState<number>(PAGE_SIZE_OPTIONS[0]);
   const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return items;
-    return items.filter((item) => matches(item, query));
+    if (filters.length === 0) return items;
+    return items.filter((item) =>
+      filters.every(({ field, value }) => {
+        const query = value.trim().toLowerCase();
+        if (!query) return true;
+        const fieldDef = fields.find((f) => f.value === field) ?? fields[0];
+        if (!fieldDef) return true;
+        return (fieldDef.getValue(item) ?? "").toLowerCase().includes(query);
+      }),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, search]);
+  }, [items, filters]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -22,8 +43,8 @@ export function useListControls<T>(items: T[], matches: (item: T, query: string)
     [filtered, safePage, pageSize],
   );
 
-  function setSearch(value: string) {
-    setSearchState(value);
+  function setFilters(next: FilterCondition[]) {
+    setFiltersState(next.filter((f) => f.value.trim() !== ""));
     setPage(1);
   }
 
@@ -33,8 +54,9 @@ export function useListControls<T>(items: T[], matches: (item: T, query: string)
   }
 
   return {
-    search,
-    setSearch,
+    fields,
+    filters,
+    setFilters,
     pageSize,
     setPageSize,
     page: safePage,

@@ -46,11 +46,11 @@ function CspStatusPage() {
     return Array.from(totals.entries());
   }, [items]);
 
-  const list = useListControls(items, (item, query) =>
-    [item.folder_name, item.product_name, item.license_key]
-      .filter(Boolean)
-      .some((field) => field!.toLowerCase().includes(query)),
-  );
+  const list = useListControls(items, [
+    { value: "folder_name", label: "Folder Name", getValue: (item) => item.folder_name },
+    { value: "product_name", label: "Product Name", getValue: (item) => item.product_name },
+    { value: "license_key", label: "License Key", getValue: (item) => item.license_key },
+  ]);
 
   return (
     <div>
@@ -97,12 +97,13 @@ function CspStatusPage() {
                 ]}
               />
               <ListControls
-                search={list.search}
-                onSearchChange={list.setSearch}
+                fields={list.fields}
+                filters={list.filters}
+                onFiltersChange={list.setFilters}
                 pageSize={list.pageSize}
                 onPageSizeChange={list.setPageSize}
                 total={list.total}
-                placeholder="Folder Name / Product Name / License Key 검색"
+                placeholder="검색어를 입력하세요"
               />
               <div style={{ overflowX: "auto" }}>
                 <table>

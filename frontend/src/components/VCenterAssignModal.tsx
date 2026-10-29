@@ -21,6 +21,13 @@ interface VCenterGroup {
   hosts: VCenterInventoryItem[];
 }
 
+const SEARCH_FIELDS: { value: string; label: string; getValue: (item: VCenterInventoryItem) => string | null }[] = [
+  { value: "vcenter_name", label: "vCenter", getValue: (item) => item.vcenter_name },
+  { value: "cluster_name", label: "Cluster Name", getValue: (item) => item.cluster_name },
+  { value: "host_name", label: "Host Name", getValue: (item) => item.host_name },
+  { value: "license_key", label: "License Key", getValue: (item) => item.license_key },
+];
+
 function TriCheckbox({
   checked,
   indeterminate,
@@ -45,6 +52,7 @@ function VCenterAssignModal({ project, onClose, onAssigned }: Props) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchField, setSearchField] = useState(SEARCH_FIELDS[0].value);
   const [searchInput, setSearchInput] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
 
@@ -61,12 +69,9 @@ function VCenterAssignModal({ project, onClose, onAssigned }: Props) {
   const query = activeSearch.trim().toLowerCase();
   const filteredItems = useMemo(() => {
     if (!query) return items;
-    return items.filter((item) =>
-      [item.host_name, item.cluster_name, item.vcenter_name, item.license_key]
-        .filter(Boolean)
-        .some((field) => field!.toLowerCase().includes(query)),
-    );
-  }, [items, query]);
+    const field = SEARCH_FIELDS.find((f) => f.value === searchField) ?? SEARCH_FIELDS[0];
+    return items.filter((item) => (field.getValue(item) ?? "").toLowerCase().includes(query));
+  }, [items, query, searchField]);
 
   function handleSearch() {
     setActiveSearch(searchInput.trim());
@@ -157,9 +162,16 @@ function VCenterAssignModal({ project, onClose, onAssigned }: Props) {
         {error && <p className="error-text">{error}</p>}
         {!loading && items.length > 0 && (
           <div className="search-bar">
+            <select value={searchField} onChange={(e) => setSearchField(e.target.value)}>
+              {SEARCH_FIELDS.map((field) => (
+                <option key={field.value} value={field.value}>
+                  {field.label}
+                </option>
+              ))}
+            </select>
             <input
               type="text"
-              placeholder="vCenter / Cluster / Host / License Key 검색"
+              placeholder="검색어를 입력하세요"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}

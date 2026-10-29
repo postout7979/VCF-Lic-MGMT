@@ -1,6 +1,6 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 
-import { deleteAllCspData, searchCspData, uploadCspData } from "../../api/client";
+import { deleteAllCspData, deleteExpiredCspData, searchCspData, uploadCspData } from "../../api/client";
 import CspDeleteUploadsModal from "../../components/CspDeleteUploadsModal";
 import Pagination from "../../components/Pagination";
 import { CSP_SEARCHABLE_FIELDS } from "../../types";
@@ -37,6 +37,7 @@ function CspDataTab() {
   const [uploadName, setUploadName] = useState("");
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deletingExpired, setDeletingExpired] = useState(false);
   const [showDeleteUploads, setShowDeleteUploads] = useState(false);
   const [result, setResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +126,27 @@ function CspDataTab() {
     }
   }
 
+  async function handleDeleteExpired() {
+    if (
+      !window.confirm(
+        "Contract End Date가 오늘 이전인 만료 항목을 모두 삭제할까요? 한번 삭제하면 복구할 수 없습니다.",
+      )
+    ) {
+      return;
+    }
+    setDeletingExpired(true);
+    setError(null);
+    try {
+      await deleteExpiredCspData();
+      loadItems(1, activeSearch);
+      setPage(1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "삭제에 실패했습니다.");
+    } finally {
+      setDeletingExpired(false);
+    }
+  }
+
   function sortIndicator(field: string) {
     if (sortField !== field) return "";
     return sortOrder === "asc" ? " ▲" : " ▼";
@@ -133,6 +155,10 @@ function CspDataTab() {
   return (
     <div>
       <div className="card" style={{ marginBottom: 20 }}>
+        <p className="text-muted" style={{ marginTop: 0 }}>
+          Broadcom CSP 포털의 "AllLicenseKeys" 엑셀 내보내기를 업로드하세요. (License Key / Product
+          Name / Quantity / Folder Name / Contract End Date)
+        </p>
         <div className="form-row" style={{ justifyContent: "space-between" }}>
           <div className="form-row" style={{ marginBottom: 0 }}>
             <input
@@ -149,15 +175,14 @@ function CspDataTab() {
             <button className="btn btn-secondary" onClick={() => setShowDeleteUploads(true)}>
               개별 삭제
             </button>
+            <button className="btn btn-danger" onClick={handleDeleteExpired} disabled={deletingExpired}>
+              {deletingExpired ? "삭제 중..." : "만료 항목 삭제"}
+            </button>
             <button className="btn btn-danger" onClick={handleDeleteAll} disabled={deleting}>
               {deleting ? "삭제 중..." : "전체 삭제"}
             </button>
           </div>
         </div>
-        <p className="text-muted" style={{ marginBottom: 0 }}>
-          Broadcom CSP 포털의 "AllLicenseKeys" 엑셀 내보내기를 업로드하세요. (License Key / Product
-          Name / Quantity / Folder Name / Contract End Date)
-        </p>
         {error && <p className="error-text">{error}</p>}
         {result && (
           <p className="success-text">

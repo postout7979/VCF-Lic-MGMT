@@ -13,7 +13,7 @@ from app.models.user import User, user_project_assignments
 from app.models.vcenter import VCenterInventoryItem
 from app.models.vcf_ops import VcfOpsCoreLicenseItem
 from app.schemas.license_item import AssignItemsRequest
-from app.schemas.project import ProjectCreate, ProjectDetail, ProjectSummary
+from app.schemas.project import ProjectCreate, ProjectDetail, ProjectSummary, ProjectUpdate
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -43,8 +43,9 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         .scalar()
         or 0
     )
-    # Perpetual vCenter licensing is per-socket; term (subscription) licensing
-    # is per-core actually consumed.
+    # Perpetual vSphere licensing is sold per-CPU; term licensing (VCF) is
+    # sold per-core - matching the cost unit reported by the collected
+    # license info (which also drives license_category itself now).
     vcenter_perpetual_quantity = (
         db.query(func.coalesce(func.sum(VCenterInventoryItem.cpu_sockets), 0))
         .filter(
@@ -117,6 +118,7 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         id=project.id,
         name=project.name,
         description=project.description,
+        location=project.location,
         created_at=project.created_at,
         perpetual_quantity=_quantity_sum(db, project.id, "PERPETUAL"),
         subscription_quantity=_quantity_sum(db, project.id, "SUBSCRIPTION"),
@@ -187,8 +189,53 @@ def create_project(
 ):
     if db.query(Project).filter(Project.name == payload.name).first():
         raise HTTPException(status_code=409, detail="같은 이름의 프로젝트가 이미 존재합니다.")
-    project = Project(name=payload.name, description=payload.description)
+
+    user_ids = set(payload.user_ids)
+    users = db.query(User).filter(User.id.in_(user_ids)).all() if user_ids else []
+    missing_ids = user_ids - {u.id for u in users}
+    if missing_ids:
+        raise HTTPException(status_code=404, detail=f"존재하지 않는 사용자: {sorted(missing_ids)}")
+
+    project = Project(name=payload.name, description=payload.description, location=payload.location)
     db.add(project)
+    db.commit()
+    db.refresh(project)
+
+    # Adds this new project to each selected user's existing assignments,
+    # rather than replacing them (unlike the Users tab's per-user picker,
+    # which sets a user's full project list in one go).
+    if users:
+        db.execute(
+            user_project_assignments.insert(),
+            [{"user_id": user.id, "project_id": project.id} for user in users],
+        )
+        db.commit()
+
+    return _to_summary(db, project)
+
+
+@router.patch("/{project_id}", response_model=ProjectSummary)
+def update_project(
+    project_id: int,
+    payload: ProjectUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    project = db.get(Project, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+
+    if payload.name is not None:
+        name = payload.name.strip()
+        if not name:
+            raise HTTPException(status_code=422, detail="프로젝트 이름을 입력해주세요.")
+        if name != project.name and db.query(Project).filter(Project.name == name).first():
+            raise HTTPException(status_code=409, detail="같은 이름의 프로젝트가 이미 존재합니다.")
+        project.name = name
+
+    if payload.location is not None:
+        project.location = payload.location.strip() or None
+
     db.commit()
     db.refresh(project)
     return _to_summary(db, project)

@@ -33,6 +33,7 @@ from app.models import (  # noqa: F401  (register models with Base)
     UserApplication,
     VCenterConnection,
     VCenterInventoryItem,
+    VCenterLicenseInfo,
     VcfOpsConnection,
     VcfOpsCoreLicenseItem,
 )
@@ -134,6 +135,10 @@ SCHEMA_PATCHES = [
     "ALTER TABLE brand_settings ADD COLUMN IF NOT EXISTS default_background_image_mimetype VARCHAR",
     "ALTER TABLE brand_settings ADD COLUMN IF NOT EXISTS default_logo_image BYTEA",
     "ALTER TABLE brand_settings ADD COLUMN IF NOT EXISTS default_logo_image_mimetype VARCHAR",
+    # Project location, editable after creation via the 프로젝트 tab's edit button.
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS location VARCHAR",
+    # License Manager entries also report an expiration date for term licenses.
+    "ALTER TABLE vcenter_license_info ADD COLUMN IF NOT EXISTS expiration_date DATE",
 ]
 
 _RANDOM_HIRE_YEARS = [str(y) for y in range(2008, 2024)]

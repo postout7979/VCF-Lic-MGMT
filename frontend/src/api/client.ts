@@ -16,6 +16,7 @@ import type {
   UserApplication,
   VCenterConnection,
   VCenterInventoryItem,
+  VCenterLicenseInfo,
   VCenterVersionHint,
   VcfOpsConnection,
   VcfOpsCoreLicenseItem,
@@ -324,6 +325,10 @@ export function deleteAllSupplierData(): Promise<void> {
   return request<void>("/supplier-data", { method: "DELETE" });
 }
 
+export function deleteExpiredSupplierData(): Promise<void> {
+  return request<void>("/supplier-data/expired", { method: "DELETE" });
+}
+
 export function fetchUploadBatches(): Promise<UploadBatch[]> {
   return request<UploadBatch[]>("/supplier-data/uploads");
 }
@@ -339,10 +344,28 @@ export function fetchProjects(): Promise<ProjectSummary[]> {
   return request<ProjectSummary[]>("/projects");
 }
 
-export function createProject(name: string, description?: string): Promise<ProjectSummary> {
+export function createProject(payload: {
+  name: string;
+  location?: string;
+  userIds?: number[];
+}): Promise<ProjectSummary> {
   return request<ProjectSummary>("/projects", {
     method: "POST",
-    body: JSON.stringify({ name, description }),
+    body: JSON.stringify({
+      name: payload.name,
+      location: payload.location,
+      user_ids: payload.userIds ?? [],
+    }),
+  });
+}
+
+export function updateProject(
+  projectId: number,
+  payload: { name?: string; location?: string },
+): Promise<ProjectSummary> {
+  return request<ProjectSummary>(`/projects/${projectId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
   });
 }
 
@@ -408,6 +431,12 @@ export function deleteVCenterConnection(connectionId: number): Promise<void> {
 export function fetchVCenterInventory(connectionId: number): Promise<VCenterInventoryItem[]> {
   return request<VCenterInventoryItem[]>(
     `/legacy-infra/vcenter-connections/${connectionId}/inventory`,
+  );
+}
+
+export function fetchVCenterLicenses(connectionId: number): Promise<VCenterLicenseInfo[]> {
+  return request<VCenterLicenseInfo[]>(
+    `/legacy-infra/vcenter-connections/${connectionId}/licenses`,
   );
 }
 
@@ -531,6 +560,10 @@ export function searchCspData(params: {
 
 export function deleteAllCspData(): Promise<void> {
   return request<void>("/csp-data", { method: "DELETE" });
+}
+
+export function deleteExpiredCspData(): Promise<void> {
+  return request<void>("/csp-data/expired", { method: "DELETE" });
 }
 
 export function fetchCspUploadBatches(): Promise<UploadBatch[]> {

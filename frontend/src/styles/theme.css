@@ -463,6 +463,11 @@ select:focus {
 
 /* search bar */
 
+.search-bar-group {
+  display: flex;
+  flex-direction: column;
+}
+
 .search-bar {
   display: flex;
   gap: 8px;
@@ -599,6 +604,10 @@ select:focus {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
+}
+
+.donut-grid + .donut-grid {
+  margin-top: 14px;
 }
 
 .donut-card {

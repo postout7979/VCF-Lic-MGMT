@@ -1,5 +1,6 @@
 import io
 import math
+from datetime import date
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile
 from sqlalchemy import func
@@ -57,6 +58,15 @@ def upload_csp_data(
 @router.delete("", status_code=204)
 def delete_all_csp_data(db: Session = Depends(get_db), _: User = Depends(require_admin)):
     db.query(CspLicenseItem).delete()
+    db.commit()
+
+
+@router.delete("/expired", status_code=204)
+def delete_expired_csp_data(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    db.query(CspLicenseItem).filter(
+        CspLicenseItem.contract_end_date.is_not(None),
+        CspLicenseItem.contract_end_date < date.today(),
+    ).delete(synchronize_session=False)
     db.commit()
 
 

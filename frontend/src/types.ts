@@ -22,6 +22,7 @@ export interface ProjectSummary {
   id: number;
   name: string;
   description: string | null;
+  location: string | null;
   created_at: string;
   perpetual_quantity: number;
   subscription_quantity: number;
@@ -94,6 +95,18 @@ export interface UploadBatch {
   upload_name: string;
   uploaded_at: string;
   item_count: number;
+}
+
+export interface VCenterLicenseInfo {
+  id: number;
+  license_key: string;
+  product_name: string | null;
+  cost_unit: string | null;
+  total: number | null;
+  used: number | null;
+  license_category: string | null;
+  expiration_date: string | null;
+  collected_at: string;
 }
 
 export interface VCenterInventoryItem {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { assignCspItemsToProject, fetchCspData } from "../api/client";
 import type { CspLicenseItem, ProjectSummary } from "../types";
+import { isVSphereProduct } from "../utils/vsphere";
 import Pagination from "./Pagination";
 
 interface Props {
@@ -12,12 +13,19 @@ interface Props {
 
 const PAGE_SIZE = 20;
 
+const SEARCH_FIELDS: { value: string; label: string; getValue: (item: CspLicenseItem) => string | null }[] = [
+  { value: "folder_name", label: "Folder Name", getValue: (item) => item.folder_name },
+  { value: "product_name", label: "Product Name", getValue: (item) => item.product_name },
+  { value: "license_key", label: "License Key", getValue: (item) => item.license_key },
+];
+
 function CspAssignModal({ project, onClose, onAssigned }: Props) {
   const [items, setItems] = useState<CspLicenseItem[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchField, setSearchField] = useState(SEARCH_FIELDS[0].value);
   const [searchInput, setSearchInput] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -32,15 +40,17 @@ function CspAssignModal({ project, onClose, onAssigned }: Props) {
       .finally(() => setLoading(false));
   }, [project.id]);
 
+  // Only vSphere products are offered for new picks here; items already
+  // assigned to this project under another product stay selected (so saving
+  // doesn't silently unassign them) even though they're filtered out of view.
+  const visibleItems = useMemo(() => items.filter((item) => isVSphereProduct(item.product_name)), [items]);
+
   const filteredItems = useMemo(() => {
     const query = activeSearch.trim().toLowerCase();
-    if (!query) return items;
-    return items.filter((item) =>
-      [item.folder_name, item.product_name, item.license_key]
-        .filter(Boolean)
-        .some((field) => field!.toLowerCase().includes(query)),
-    );
-  }, [items, activeSearch]);
+    if (!query) return visibleItems;
+    const field = SEARCH_FIELDS.find((f) => f.value === searchField) ?? SEARCH_FIELDS[0];
+    return visibleItems.filter((item) => (field.getValue(item) ?? "").toLowerCase().includes(query));
+  }, [visibleItems, activeSearch, searchField]);
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
 
@@ -104,15 +114,22 @@ function CspAssignModal({ project, onClose, onAssigned }: Props) {
       <div className="modal-box">
         <h2>{project.name} — CSP 할당</h2>
         <p className="text-muted">
-          체크박스로 항목을 선택/해제한 뒤 저장을 눌러주세요. 이미 이 프로젝트에 할당된 항목은
-          체크된 상태로 표시됩니다.
+          Product Name이 vSphere인 항목만 표시됩니다. 체크박스로 항목을 선택/해제한 뒤 저장을
+          눌러주세요. 이미 이 프로젝트에 할당된 항목은 체크된 상태로 표시됩니다.
         </p>
         {error && <p className="error-text">{error}</p>}
-        {!loading && items.length > 0 && (
+        {!loading && visibleItems.length > 0 && (
           <div className="search-bar">
+            <select value={searchField} onChange={(e) => setSearchField(e.target.value)}>
+              {SEARCH_FIELDS.map((field) => (
+                <option key={field.value} value={field.value}>
+                  {field.label}
+                </option>
+              ))}
+            </select>
             <input
               type="text"
-              placeholder="Folder Name / Product Name / License Key 검색"
+              placeholder="검색어를 입력하세요"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -134,6 +151,10 @@ function CspAssignModal({ project, onClose, onAssigned }: Props) {
             <p style={{ padding: 16 }} className="text-muted">
               할당 가능한 CSP 항목이 없습니다. CSP 현황 탭에서 먼저 엑셀을 업로드해주세요.
             </p>
+          ) : visibleItems.length === 0 ? (
+            <p style={{ padding: 16 }} className="text-muted">
+              Product Name이 vSphere인 할당 가능한 CSP 항목이 없습니다.
+            </p>
           ) : filteredItems.length === 0 ? (
             <p style={{ padding: 16 }} className="text-muted">
               검색 결과가 없습니다.
@@ -147,6 +168,7 @@ function CspAssignModal({ project, onClose, onAssigned }: Props) {
                   </th>
                   <th>Folder Name</th>
                   <th>Product Name</th>
+                  <th>License Key</th>
                   <th>Quantity</th>
                   <th>Contract End Date</th>
                 </tr>
@@ -163,6 +185,7 @@ function CspAssignModal({ project, onClose, onAssigned }: Props) {
                     </td>
                     <td>{item.folder_name ?? "-"}</td>
                     <td>{item.product_name ?? "-"}</td>
+                    <td>{item.license_key ?? "-"}</td>
                     <td>
                       {item.quantity.toLocaleString()} {item.unit ?? ""}
                     </td>

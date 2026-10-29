@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -32,6 +32,9 @@ class VCenterConnection(Base):
     inventory_items = relationship(
         "VCenterInventoryItem", back_populates="connection", cascade="all, delete-orphan"
     )
+    license_info = relationship(
+        "VCenterLicenseInfo", back_populates="connection", cascade="all, delete-orphan"
+    )
 
 
 class VCenterInventoryItem(Base):
@@ -59,3 +62,26 @@ class VCenterInventoryItem(Base):
 
     connection = relationship("VCenterConnection", back_populates="inventory_items")
     project = relationship("Project", back_populates="vcenter_items")
+
+
+class VCenterLicenseInfo(Base):
+    """A license entitlement read from a vCenter's License Manager - the
+    total/used quantity for one license key, independent of which hosts it's
+    assigned to (see VCenterInventoryItem for the per-host assignment)."""
+
+    __tablename__ = "vcenter_license_info"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    connection_id: Mapped[int] = mapped_column(
+        ForeignKey("vcenter_connections.id"), nullable=False, index=True
+    )
+    license_key: Mapped[str] = mapped_column(String, nullable=False)
+    product_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    cost_unit: Mapped[str | None] = mapped_column(String, nullable=True)
+    total: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    used: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    license_category: Mapped[str | None] = mapped_column(String, nullable=True)  # PERPETUAL|SUBSCRIPTION
+    expiration_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    collected_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    connection = relationship("VCenterConnection", back_populates="license_info")

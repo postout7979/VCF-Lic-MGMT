@@ -6,11 +6,12 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_current_user, require_admin
 from app.core.database import get_db
 from app.models.user import User
-from app.models.vcenter import VCenterConnection, VCenterInventoryItem
+from app.models.vcenter import VCenterConnection, VCenterInventoryItem, VCenterLicenseInfo
 from app.schemas.vcenter import (
     VCenterConnectionCreate,
     VCenterConnectionRead,
     VCenterInventoryItemRead,
+    VCenterLicenseInfoRead,
     VCenterSyncIntervalUpdate,
 )
 from app.services.vcenter_client import collect_inventory
@@ -45,7 +46,7 @@ def _to_read(connection: VCenterConnection, db: Session) -> VCenterConnectionRea
 
 def _sync_connection(connection: VCenterConnection, db: Session) -> None:
     try:
-        detected_version, rows = collect_inventory(
+        detected_version, rows, license_rows = collect_inventory(
             connection.host,
             connection.username,
             connection.password,
@@ -85,6 +86,12 @@ def _sync_connection(connection: VCenterConnection, db: Session) -> None:
     for host_name, item in existing_by_host.items():
         if host_name not in seen_hosts:
             db.delete(item)
+
+    # License entitlements are a full snapshot each sync (not tied to a
+    # stable per-host key like inventory rows), so just replace them.
+    db.query(VCenterLicenseInfo).filter(VCenterLicenseInfo.connection_id == connection.id).delete()
+    for license_row in license_rows:
+        db.add(VCenterLicenseInfo(connection_id=connection.id, **license_row))
 
     connection.status = "connected"
     connection.detected_version = detected_version
@@ -169,6 +176,24 @@ def get_inventory(
         db.query(VCenterInventoryItem)
         .filter(VCenterInventoryItem.connection_id == connection_id)
         .order_by(VCenterInventoryItem.cluster_name, VCenterInventoryItem.host_name)
+        .all()
+    )
+
+
+@router.get(
+    "/vcenter-connections/{connection_id}/licenses",
+    response_model=list[VCenterLicenseInfoRead],
+)
+def get_license_info(
+    connection_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)
+):
+    connection = db.get(VCenterConnection, connection_id)
+    if connection is None:
+        raise HTTPException(status_code=404, detail="연결을 찾을 수 없습니다.")
+    return (
+        db.query(VCenterLicenseInfo)
+        .filter(VCenterLicenseInfo.connection_id == connection_id)
+        .order_by(VCenterLicenseInfo.product_name)
         .all()
     )
 

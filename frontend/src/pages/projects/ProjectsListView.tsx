@@ -23,18 +23,18 @@ function ProjectsListView() {
       (a.enduser_account_name ?? "").localeCompare(b.enduser_account_name ?? ""),
     );
   }, [detail]);
-  const list = useListControls(licenseItems, (item, query) =>
-    [
-      item.serial_number,
-      item.parent_customer,
-      item.customer_name,
-      item.enduser_account_name,
-      item.product_name,
-      item.erp_site_id,
-    ]
-      .filter(Boolean)
-      .some((field) => field!.toLowerCase().includes(query)),
-  );
+  const list = useListControls(licenseItems, [
+    { value: "serial_number", label: "Serial Number", getValue: (item) => item.serial_number },
+    { value: "parent_customer", label: "Parent Customer", getValue: (item) => item.parent_customer },
+    { value: "customer_name", label: "Customer Name", getValue: (item) => item.customer_name },
+    {
+      value: "enduser_account_name",
+      label: "Enduser Account Name",
+      getValue: (item) => item.enduser_account_name,
+    },
+    { value: "product_name", label: "Product Name", getValue: (item) => item.product_name },
+    { value: "erp_site_id", label: "ERP Site ID", getValue: (item) => item.erp_site_id },
+  ]);
 
   useEffect(() => {
     fetchProjects().then((data) =>
@@ -94,12 +94,13 @@ function ProjectsListView() {
               ]}
             />
             <ListControls
-              search={list.search}
-              onSearchChange={list.setSearch}
+              fields={list.fields}
+              filters={list.filters}
+              onFiltersChange={list.setFilters}
               pageSize={list.pageSize}
               onPageSizeChange={list.setPageSize}
               total={list.total}
-              placeholder="Serial Number / Customer / Product Name / ERP Site ID 검색"
+              placeholder="검색어를 입력하세요"
             />
             <div style={{ overflowX: "auto" }}>
               <table>

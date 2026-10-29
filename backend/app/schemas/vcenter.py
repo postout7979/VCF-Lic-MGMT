@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
@@ -32,6 +32,20 @@ class VCenterInventoryItemRead(BaseModel):
     license_category: str | None = None
     collected_at: datetime
     project_id: int | None = None
+
+
+class VCenterLicenseInfoRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    license_key: str
+    product_name: str | None
+    cost_unit: str | None
+    total: int | None
+    used: int | None
+    license_category: str | None
+    expiration_date: date | None = None
+    collected_at: datetime
 
 
 class VCenterConnectionRead(BaseModel):

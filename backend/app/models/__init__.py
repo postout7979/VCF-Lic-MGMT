@@ -7,7 +7,7 @@ from app.models.project import Project
 from app.models.smtp_settings import SmtpSettings
 from app.models.user import User
 from app.models.user_application import UserApplication
-from app.models.vcenter import VCenterConnection, VCenterInventoryItem
+from app.models.vcenter import VCenterConnection, VCenterInventoryItem, VCenterLicenseInfo
 from app.models.vcf_ops import VcfOpsConnection, VcfOpsCoreLicenseItem
 
 __all__ = [
@@ -22,6 +22,7 @@ __all__ = [
     "UserApplication",
     "VCenterConnection",
     "VCenterInventoryItem",
+    "VCenterLicenseInfo",
     "VcfOpsConnection",
     "VcfOpsCoreLicenseItem",
 ]

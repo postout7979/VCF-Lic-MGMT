@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { assignVcfOpsItemsToProject, fetchVcfOpsItems } from "../api/client";
 import type { ProjectSummary, VcfOpsCoreLicenseItem } from "../types";
+import { isVcfAssignableLicense } from "../utils/vsphere";
 
 interface Props {
   project: ProjectSummary;
@@ -13,6 +14,13 @@ interface ConnectionGroup {
   connectionName: string;
   items: VcfOpsCoreLicenseItem[];
 }
+
+const SEARCH_FIELDS: { value: string; label: string; getValue: (item: VcfOpsCoreLicenseItem) => string | null }[] = [
+  { value: "connection_name", label: "연결", getValue: (item) => item.connection_name },
+  { value: "license_key", label: "License Key", getValue: (item) => item.license_key },
+  { value: "license_type", label: "License Type", getValue: (item) => item.license_type },
+  { value: "domain_name", label: "Domain", getValue: (item) => item.domain_name },
+];
 
 function TriCheckbox({
   checked,
@@ -37,6 +45,7 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchField, setSearchField] = useState(SEARCH_FIELDS[0].value);
   const [searchInput, setSearchInput] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
 
@@ -51,15 +60,18 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
       .finally(() => setLoading(false));
   }, [project.id]);
 
+  // Only Cloud Foundation / vSphere Foundation licenses are offered for new
+  // picks here; items already assigned to this project under another
+  // license stay selected (so saving doesn't silently unassign them) even
+  // though they're filtered out of view.
+  const visibleItems = useMemo(() => items.filter((item) => isVcfAssignableLicense(item.license_key)), [items]);
+
   const query = activeSearch.trim().toLowerCase();
   const filteredItems = useMemo(() => {
-    if (!query) return items;
-    return items.filter((item) =>
-      [item.connection_name, item.license_key, item.license_type, item.domain_name]
-        .filter(Boolean)
-        .some((field) => field!.toLowerCase().includes(query)),
-    );
-  }, [items, query]);
+    if (!query) return visibleItems;
+    const field = SEARCH_FIELDS.find((f) => f.value === searchField) ?? SEARCH_FIELDS[0];
+    return visibleItems.filter((item) => (field.getValue(item) ?? "").toLowerCase().includes(query));
+  }, [visibleItems, query, searchField]);
 
   function handleSearch() {
     setActiveSearch(searchInput.trim());
@@ -138,15 +150,23 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
       <div className="modal-box">
         <h2>{project.name} — VCF 할당</h2>
         <p className="text-muted">
-          VCF Operations 연결을 체크하면 하위 라이센스 항목이 모두 선택됩니다. 연결 이름을 클릭하면
+          "VMware Cloud Foundation", "VMware vSphere Foundation" 항목만 표시됩니다. VCF
+          Operations 연결을 체크하면 하위 라이센스 항목이 모두 선택됩니다. 연결 이름을 클릭하면
           하위 목록이 펼쳐집니다.
         </p>
         {error && <p className="error-text">{error}</p>}
-        {!loading && items.length > 0 && (
+        {!loading && visibleItems.length > 0 && (
           <div className="search-bar">
+            <select value={searchField} onChange={(e) => setSearchField(e.target.value)}>
+              {SEARCH_FIELDS.map((field) => (
+                <option key={field.value} value={field.value}>
+                  {field.label}
+                </option>
+              ))}
+            </select>
             <input
               type="text"
-              placeholder="연결 / License Key / License Type / Domain 검색"
+              placeholder="검색어를 입력하세요"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -168,6 +188,10 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
             <p style={{ padding: 16 }} className="text-muted">
               할당 가능한 VCF 항목이 없습니다. 설정 &gt; VCF 탭에서 먼저 VCF Operations 연결을
               추가해주세요.
+            </p>
+          ) : visibleItems.length === 0 ? (
+            <p style={{ padding: 16 }} className="text-muted">
+              "VMware Cloud Foundation" 또는 "VMware vSphere Foundation" 라이센스 항목이 없습니다.
             </p>
           ) : groups.length === 0 ? (
             <p style={{ padding: 16 }} className="text-muted">

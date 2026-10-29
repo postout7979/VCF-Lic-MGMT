@@ -16,13 +16,53 @@ def _check_reachable(host: str, port: int = 443) -> None:
         raise ValueError(f"vCenter 서버({host}:{port})에 연결할 수 없습니다: {exc}") from exc
 
 
+def _license_category_from_cost_unit(cost_unit: str | None) -> str:
+    """Perpetual vSphere licenses are sold per-CPU ("cpuPackage"); term
+    licenses (introduced with VCF) are sold per-core. The cost unit vCenter
+    reports is the reliable signal for this - not whether an expirationDate
+    happens to be set, which some per-core entitlements leave unset too."""
+    return "PERPETUAL" if cost_unit == "cpuPackage" else "SUBSCRIPTION"
+
+
+def _collect_licenses(si) -> list[dict]:
+    """Reads the vCenter-wide license entitlements (key -> total/used quantity)
+    from the License Manager, independent of which hosts consume them."""
+    try:
+        licenses = si.content.licenseManager.licenses
+    except Exception:
+        return []
+
+    rows: list[dict] = []
+    for lic in licenses:
+        # The unset/eval slot reports as an all-zero key with no entitlement;
+        # skip it so only real, assigned licenses are shown.
+        if not lic.licenseKey or not lic.total:
+            continue
+        props = {p.key: p.value for p in (lic.properties or [])}
+        expiration = props.get("expirationDate")
+        rows.append(
+            {
+                "license_key": lic.licenseKey,
+                "product_name": props.get("ProductName") or lic.name,
+                "cost_unit": lic.costUnit,
+                "total": lic.total,
+                "used": lic.used,
+                "license_category": _license_category_from_cost_unit(lic.costUnit),
+                # vCenter reports this as a datetime; only the calendar date matters here.
+                "expiration_date": expiration.date() if hasattr(expiration, "date") else expiration,
+            }
+        )
+    return rows
+
+
 def collect_inventory(
     host: str, username: str, password: str, verify_tls: bool = False
-) -> tuple[str, list[dict]]:
-    """Connect to a vCenter (7.x/8.x) and collect per-host license/hardware info.
+) -> tuple[str, list[dict], list[dict]]:
+    """Connect to a vCenter (7.x/8.x) and collect per-host hardware/license
+    assignment info, plus the vCenter-wide license entitlement quantities.
 
-    Returns (detected_version, inventory_rows). Raises ValueError on any
-    connection failure or unsupported server version.
+    Returns (detected_version, inventory_rows, license_rows). Raises
+    ValueError on any connection failure or unsupported server version.
     """
     _check_reachable(host)
 
@@ -74,13 +114,7 @@ def collect_inventory(
                             if assignments:
                                 assigned = assignments[0].assignedLicense
                                 license_key = assigned.licenseKey
-                                # A term/subscription license carries an
-                                # "expirationDate" property; a perpetual
-                                # license does not.
-                                props = {p.key: p.value for p in (assigned.properties or [])}
-                                license_category = (
-                                    "SUBSCRIPTION" if "expirationDate" in props else "PERPETUAL"
-                                )
+                                license_category = _license_category_from_cost_unit(assigned.costUnit)
                         except Exception:
                             license_key = None
                             license_category = None
@@ -99,6 +133,7 @@ def collect_inventory(
         finally:
             container.Destroy()
 
-        return detected_version, inventory
+        license_rows = _collect_licenses(si)
+        return detected_version, inventory, license_rows
     finally:
         Disconnect(si)

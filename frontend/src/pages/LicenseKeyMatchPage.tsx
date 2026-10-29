@@ -106,7 +106,9 @@ function LicenseKeyMatchPage() {
     return { matched, legacyOnly, cspOnly, total, matchRate };
   }, [rows]);
 
-  const list = useListControls(rows, (row, query) => row.licenseKey.toLowerCase().includes(query));
+  const list = useListControls(rows, [
+    { value: "licenseKey", label: "License Key", getValue: (row) => row.licenseKey },
+  ]);
 
   return (
     <div>
@@ -168,8 +170,9 @@ function LicenseKeyMatchPage() {
               ]}
             />
             <ListControls
-              search={list.search}
-              onSearchChange={list.setSearch}
+              fields={list.fields}
+              filters={list.filters}
+              onFiltersChange={list.setFilters}
               pageSize={list.pageSize}
               onPageSizeChange={list.setPageSize}
               total={list.total}
