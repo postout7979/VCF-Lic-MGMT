@@ -134,17 +134,6 @@ docker build -f appliance/docker/frontend/Dockerfile.prod -t frontend-prod .
 docker compose -f appliance/docker/docker-compose.prod.yml up -d
 ```
 
-## vSphere OVA 어플라이언스 (appliance/)
-
-이 리포지토리는 애플리케이션 전체를 vSphere의 "Deploy OVF Template" 마법사로 배포 가능한 OVA로 패키징하기 위한 스캐폴드도 포함합니다. VCSA, NSX Manager 등 다른 VMware 어플라이언스처럼, 배포 시 호스트명/IP/서브넷/게이트웨이/DNS/NTP/root 비밀번호를 입력받아 최초 부팅 시 게스트 OS(Ubuntu Server)에 자동 적용합니다.
-
-- `ovf/product-section.xml` — vApp Properties 정의
-- `guest/ovf-customize.sh`, `ovf-customize.service` — 최초 부팅 시 속성을 읽어 netplan 네트워크 설정, NTP, hostname, root 비밀번호를 적용하는 스크립트와 systemd 유닛
-- `docker/` — 운영용 Docker Compose 스택과 부팅 시 자동 기동용 systemd 유닛
-- `build/` — 실제 `.ova` 파일을 조립하는 빌드 스크립트와 OVF 병합 스크립트
-
-어플라이언스 구성요소별로 실제 검증된 부분과 아직 검증되지 않은 부분(특히 실제 vCenter/ESXi 환경에서의 배포 테스트)이 다르므로, 자세한 내용과 빌드/검증 절차는 `appliance/README.md`를 참고하세요.
-
 ## 참고 사항
 
 - 데이터베이스 스키마는 Alembic 없이 `create_all` + 수동 `ALTER TABLE` 패치로 관리되므로, 운영 중인 DB에 새 컬럼이 필요한 변경을 할 때는 `backend/app/main.py`의 `SCHEMA_PATCHES` 목록에 멱등(idempotent)한 구문을 추가하는 방식을 따릅니다.
