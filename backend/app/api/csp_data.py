@@ -3,11 +3,12 @@ import math
 from datetime import date
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user, require_admin
 from app.core.database import get_db
+from app.core.search_filters import apply_filters
 from app.models.csp_data import CspLicenseItem
 from app.models.user import User
 from app.schemas.csp_data import (
@@ -131,20 +132,21 @@ def list_csp_data(
 def search_csp_data(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
-    search_field: str | None = None,
-    search_query: str | None = None,
+    filters: str | None = None,
     sort_field: str | None = None,
     sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    query = db.query(CspLicenseItem)
-
-    if search_field and search_query:
-        column = SEARCHABLE_FIELDS.get(search_field)
-        if column is None:
-            raise HTTPException(status_code=400, detail=f"검색할 수 없는 항목입니다: {search_field}")
-        query = query.filter(column.ilike(f"%{search_query}%"))
+    # This tab only ever manages vSphere CSP entitlements - other CSP
+    # products (vSAN, NSX, etc.) are out of scope for this list by default.
+    query = db.query(CspLicenseItem).filter(
+        or_(
+            CspLicenseItem.product_name.ilike("vsphere%"),
+            CspLicenseItem.product_name.ilike("vmware vsphere%"),
+        )
+    )
+    query = apply_filters(query, filters, SEARCHABLE_FIELDS)
 
     total = query.count()
 

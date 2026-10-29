@@ -63,6 +63,14 @@ class VCenterInventoryItem(Base):
     connection = relationship("VCenterConnection", back_populates="inventory_items")
     project = relationship("Project", back_populates="vcenter_items")
 
+    @property
+    def connection_name(self) -> str | None:
+        return self.connection.name if self.connection else None
+
+    @property
+    def connection_host(self) -> str | None:
+        return self.connection.host if self.connection else None
+
 
 class VCenterLicenseInfo(Base):
     """A license entitlement read from a vCenter's License Manager - the

@@ -11,7 +11,7 @@ from app.models.project import Project
 from app.models.smtp_settings import SmtpSettings
 from app.models.user import User, user_project_assignments
 from app.models.user_application import UserApplication
-from app.models.vcenter import VCenterConnection, VCenterInventoryItem
+from app.models.vcenter import VCenterConnection, VCenterInventoryItem, VCenterLicenseInfo
 from app.models.vcf_ops import VcfOpsConnection, VcfOpsCoreLicenseItem
 
 router = APIRouter(prefix="/system", tags=["system"], dependencies=[Depends(require_admin)])
@@ -30,6 +30,7 @@ def reset_environment(db: Session = Depends(get_db)):
     # Child rows that reference connections/projects, deleted before their
     # parents to satisfy foreign keys.
     db.query(VCenterInventoryItem).delete(synchronize_session=False)
+    db.query(VCenterLicenseInfo).delete(synchronize_session=False)
     db.query(VcfOpsCoreLicenseItem).delete(synchronize_session=False)
     db.query(CspLicenseItem).delete(synchronize_session=False)
     db.query(LicenseItem).delete(synchronize_session=False)

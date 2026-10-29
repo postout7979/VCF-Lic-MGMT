@@ -1,16 +1,37 @@
+import shutil
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import Response
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.auth import require_admin
 from app.core.database import get_db
+from app.schemas.backup import StorageInfo
 from app.services.db_backup import BackupError, create_backup, restore_backup
 
 router = APIRouter(prefix="/backup", tags=["backup"], dependencies=[Depends(require_admin)])
 
 MAX_IMPORT_BYTES = 200 * 1024 * 1024
+
+
+@router.get("/storage", response_model=StorageInfo)
+def get_storage_info(db: Session = Depends(get_db)):
+    # The container's own filesystem is the same host disk the `db_data`
+    # Docker volume lives on (Docker doesn't give a named volume its own
+    # quota), so this reports real, actionable capacity - not just what
+    # Postgres's own data files add up to.
+    usage = shutil.disk_usage("/")
+    db_size = db.execute(text("SELECT pg_database_size(current_database())")).scalar() or 0
+    used_percent = (usage.used / usage.total * 100) if usage.total else 0.0
+    return StorageInfo(
+        volume_total_bytes=usage.total,
+        volume_used_bytes=usage.used,
+        volume_available_bytes=usage.free,
+        volume_used_percent=round(used_percent, 1),
+        db_size_bytes=int(db_size),
+    )
 
 
 @router.get("/export")

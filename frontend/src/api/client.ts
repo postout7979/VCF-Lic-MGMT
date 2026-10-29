@@ -10,6 +10,7 @@ import type {
   ProjectDetail,
   ProjectSummary,
   SmtpSettings,
+  StorageInfo,
   UploadBatch,
   UploadResult,
   User,
@@ -32,6 +33,13 @@ export function getAuthToken(): string | null {
 export function setAuthToken(token: string | null): void {
   if (token) localStorage.setItem(TOKEN_KEY, token);
   else localStorage.removeItem(TOKEN_KEY);
+}
+
+/** Serializes multi-filter conditions for a server-side search endpoint's
+ * `filters` query param (a JSON-encoded list of {field, value}). */
+function encodeFilters(filters?: { field: string; value: string }[]): string | undefined {
+  const nonEmpty = (filters ?? []).filter((f) => f.value.trim() !== "");
+  return nonEmpty.length > 0 ? JSON.stringify(nonEmpty) : undefined;
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -274,6 +282,10 @@ export function importBackup(file: File): Promise<void> {
   return request<void>("/backup/import", { method: "POST", body: formData });
 }
 
+export function fetchStorageInfo(): Promise<StorageInfo> {
+  return request<StorageInfo>("/backup/storage");
+}
+
 export function uploadSupplierData(file: File, uploadName: string): Promise<UploadResult> {
   const formData = new FormData();
   formData.append("file", file);
@@ -301,8 +313,7 @@ export function fetchSupplierData(options?: {
 export function searchSupplierData(params: {
   page: number;
   pageSize: number;
-  searchField?: string;
-  searchQuery?: string;
+  filters?: { field: string; value: string }[];
   sortField?: string;
   sortOrder?: "asc" | "desc";
 }): Promise<LicenseItemPage> {
@@ -310,10 +321,8 @@ export function searchSupplierData(params: {
     page: String(params.page),
     page_size: String(params.pageSize),
   });
-  if (params.searchField && params.searchQuery) {
-    query.set("search_field", params.searchField);
-    query.set("search_query", params.searchQuery);
-  }
+  const encodedFilters = encodeFilters(params.filters);
+  if (encodedFilters) query.set("filters", encodedFilters);
   if (params.sortField) {
     query.set("sort_field", params.sortField);
     query.set("sort_order", params.sortOrder ?? "asc");
@@ -538,8 +547,7 @@ export function fetchCspData(options?: {
 export function searchCspData(params: {
   page: number;
   pageSize: number;
-  searchField?: string;
-  searchQuery?: string;
+  filters?: { field: string; value: string }[];
   sortField?: string;
   sortOrder?: "asc" | "desc";
 }): Promise<CspLicenseItemPage> {
@@ -547,10 +555,8 @@ export function searchCspData(params: {
     page: String(params.page),
     page_size: String(params.pageSize),
   });
-  if (params.searchField && params.searchQuery) {
-    query.set("search_field", params.searchField);
-    query.set("search_query", params.searchQuery);
-  }
+  const encodedFilters = encodeFilters(params.filters);
+  if (encodedFilters) query.set("filters", encodedFilters);
   if (params.sortField) {
     query.set("sort_field", params.sortField);
     query.set("sort_order", params.sortOrder ?? "asc");

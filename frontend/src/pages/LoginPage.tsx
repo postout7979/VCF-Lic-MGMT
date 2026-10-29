@@ -85,7 +85,7 @@ function LoginPage() {
           color: "var(--color-text-muted)",
         }}
       >
-        Broadcom
+        BROADCOM KOREA
       </div>
 
       <div
@@ -165,7 +165,7 @@ function LoginPage() {
           color: "var(--color-text-muted)",
         }}
       >
-        © {new Date().getFullYear()} Broadcom. All rights reserved.
+        © {new Date().getFullYear()} BROADCOM KOREA. All rights reserved.
       </div>
 
       {showForgotPassword && (

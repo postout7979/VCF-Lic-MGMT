@@ -22,6 +22,8 @@ class VCenterInventoryItemRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    connection_name: str | None = None
+    connection_host: str | None = None
     vcenter_name: str | None
     cluster_name: str | None
     host_name: str | None

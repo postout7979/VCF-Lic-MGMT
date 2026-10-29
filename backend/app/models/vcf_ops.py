@@ -62,3 +62,7 @@ class VcfOpsCoreLicenseItem(Base):
     @property
     def connection_name(self) -> str | None:
         return self.connection.name if self.connection else None
+
+    @property
+    def connection_host(self) -> str | None:
+        return self.connection.host if self.connection else None

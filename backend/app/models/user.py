@@ -41,6 +41,10 @@ class User(Base):
     # Opaque bearer token issued at login; cleared on logout. A single active
     # session per user is enough for this internal tool.
     session_token: Mapped[str | None] = mapped_column(String, nullable=True, unique=True, index=True)
+    # Sliding idle timeout: refreshed on every authenticated request:
+    # get_current_user rejects the token once it's been this long since the
+    # last one, requiring a fresh login.
+    session_last_active_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # Password-reset fallback answers (set at account creation/edit), used
     # when email delivery isn't available. Not applicable to the admin

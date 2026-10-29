@@ -139,6 +139,8 @@ SCHEMA_PATCHES = [
     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS location VARCHAR",
     # License Manager entries also report an expiration date for term licenses.
     "ALTER TABLE vcenter_license_info ADD COLUMN IF NOT EXISTS expiration_date DATE",
+    # Sliding 10-minute idle session timeout.
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS session_last_active_at TIMESTAMP",
 ]
 
 _RANDOM_HIRE_YEARS = [str(y) for y in range(2008, 2024)]

@@ -36,6 +36,8 @@ export interface ProjectSummary {
   csp_license_count: number;
   csp_core_quantity: number;
   csp_core_quantity_expired: number;
+  csp_core_sum: number;
+  csp_processor_sum: number;
   user_count: number;
 }
 
@@ -111,6 +113,8 @@ export interface VCenterLicenseInfo {
 
 export interface VCenterInventoryItem {
   id: number;
+  connection_name: string | null;
+  connection_host: string | null;
   vcenter_name: string | null;
   cluster_name: string | null;
   host_name: string | null;
@@ -141,6 +145,7 @@ export interface VcfOpsConnection {
 export interface VcfOpsCoreLicenseItem {
   id: number;
   connection_name: string | null;
+  connection_host: string | null;
   license_key: string | null;
   license_type: string | null;
   license_status: string | null;
@@ -206,6 +211,14 @@ export interface NetworkSettings {
   dns_server: string;
   ntp_server: string;
   updated_at: string;
+}
+
+export interface StorageInfo {
+  volume_total_bytes: number;
+  volume_used_bytes: number;
+  volume_available_bytes: number;
+  volume_used_percent: number;
+  db_size_bytes: number;
 }
 
 export interface BrandInfo {

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { assignVCenterItemsToProject, fetchVCenterItems } from "../api/client";
-import LicenseTypeBadge from "./LicenseTypeBadge";
 import type { ProjectSummary, VCenterInventoryItem } from "../types";
 
 interface Props {
@@ -10,22 +9,18 @@ interface Props {
   onAssigned: () => void;
 }
 
-interface ClusterGroup {
+interface ClusterRow {
+  key: string;
+  connectionName: string;
+  connectionHost: string;
   clusterName: string;
   hosts: VCenterInventoryItem[];
 }
 
-interface VCenterGroup {
-  vcenterName: string;
-  clusters: ClusterGroup[];
-  hosts: VCenterInventoryItem[];
-}
-
 const SEARCH_FIELDS: { value: string; label: string; getValue: (item: VCenterInventoryItem) => string | null }[] = [
-  { value: "vcenter_name", label: "vCenter", getValue: (item) => item.vcenter_name },
-  { value: "cluster_name", label: "Cluster Name", getValue: (item) => item.cluster_name },
-  { value: "host_name", label: "Host Name", getValue: (item) => item.host_name },
-  { value: "license_key", label: "License Key", getValue: (item) => item.license_key },
+  { value: "connection_name", label: "연결 이름", getValue: (item) => item.connection_name },
+  { value: "connection_host", label: "vCenter 이름", getValue: (item) => item.connection_host },
+  { value: "cluster_name", label: "클러스터 이름", getValue: (item) => item.cluster_name },
 ];
 
 function TriCheckbox({
@@ -47,8 +42,6 @@ function TriCheckbox({
 function VCenterAssignModal({ project, onClose, onAssigned }: Props) {
   const [items, setItems] = useState<VCenterInventoryItem[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [expandedVCenters, setExpandedVCenters] = useState<Set<string>>(new Set());
-  const [expandedClusters, setExpandedClusters] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,12 +59,12 @@ function VCenterAssignModal({ project, onClose, onAssigned }: Props) {
       .finally(() => setLoading(false));
   }, [project.id]);
 
-  const query = activeSearch.trim().toLowerCase();
   const filteredItems = useMemo(() => {
+    const query = activeSearch.trim().toLowerCase();
     if (!query) return items;
     const field = SEARCH_FIELDS.find((f) => f.value === searchField) ?? SEARCH_FIELDS[0];
     return items.filter((item) => (field.getValue(item) ?? "").toLowerCase().includes(query));
-  }, [items, query, searchField]);
+  }, [items, activeSearch, searchField]);
 
   function handleSearch() {
     setActiveSearch(searchInput.trim());
@@ -82,34 +75,28 @@ function VCenterAssignModal({ project, onClose, onAssigned }: Props) {
     setActiveSearch("");
   }
 
-  const groups = useMemo<VCenterGroup[]>(() => {
-    const byVCenter = new Map<string, VCenterGroup>();
+  // One row per cluster, not per host - checking a cluster assigns every
+  // host in it.
+  const clusterRows = useMemo<ClusterRow[]>(() => {
+    const byCluster = new Map<string, ClusterRow>();
     for (const item of filteredItems) {
-      const vcenterName = item.vcenter_name ?? "(알 수 없음)";
-      const clusterName = item.cluster_name ?? "(알 수 없음)";
-      if (!byVCenter.has(vcenterName)) {
-        byVCenter.set(vcenterName, { vcenterName, clusters: [], hosts: [] });
+      const connectionName = item.connection_name ?? "(알 수 없음)";
+      const key = `${connectionName}::${item.cluster_name ?? "(알 수 없음)"}`;
+      let row = byCluster.get(key);
+      if (!row) {
+        row = {
+          key,
+          connectionName,
+          connectionHost: item.connection_host ?? "-",
+          clusterName: item.cluster_name ?? "(알 수 없음)",
+          hosts: [],
+        };
+        byCluster.set(key, row);
       }
-      const vGroup = byVCenter.get(vcenterName)!;
-      vGroup.hosts.push(item);
-      let cGroup = vGroup.clusters.find((c) => c.clusterName === clusterName);
-      if (!cGroup) {
-        cGroup = { clusterName, hosts: [] };
-        vGroup.clusters.push(cGroup);
-      }
-      cGroup.hosts.push(item);
+      row.hosts.push(item);
     }
-    return Array.from(byVCenter.values());
+    return Array.from(byCluster.values());
   }, [filteredItems]);
-
-  function toggleHost(id: number) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
 
   function setHosts(hosts: VCenterInventoryItem[], select: boolean) {
     setSelected((prev) => {
@@ -130,11 +117,10 @@ function VCenterAssignModal({ project, onClose, onAssigned }: Props) {
     };
   }
 
-  function toggleExpanded(set: Set<string>, setter: (s: Set<string>) => void, key: string) {
-    const next = new Set(set);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
-    setter(next);
+  const allState = selectionState(filteredItems);
+
+  function toggleAll() {
+    setHosts(filteredItems, !allState.checked);
   }
 
   async function handleAssign() {
@@ -156,8 +142,7 @@ function VCenterAssignModal({ project, onClose, onAssigned }: Props) {
       <div className="modal-box">
         <h2>{project.name} — vCenter 할당</h2>
         <p className="text-muted">
-          vCenter 또는 Cluster를 체크하면 하위 Host가 모두 선택됩니다. vCenter/Cluster 이름을
-          클릭하면 하위 목록이 펼쳐집니다.
+          클러스터를 체크하면 하위 Host가 모두 선택됩니다.
         </p>
         {error && <p className="error-text">{error}</p>}
         {!loading && items.length > 0 && (
@@ -194,99 +179,42 @@ function VCenterAssignModal({ project, onClose, onAssigned }: Props) {
               할당 가능한 vCenter 항목이 없습니다. Legacy Infra 탭에서 먼저 vCenter 어답터를
               연결해주세요.
             </p>
-          ) : groups.length === 0 ? (
+          ) : clusterRows.length === 0 ? (
             <p style={{ padding: 16 }} className="text-muted">
               검색 결과가 없습니다.
             </p>
           ) : (
-            <div className="vc-tree">
-              {groups.map((vGroup) => {
-                const vKey = vGroup.vcenterName;
-                const vExpanded = query ? true : expandedVCenters.has(vKey);
-                const vState = selectionState(vGroup.hosts);
-                return (
-                  <div key={vKey}>
-                    <div className="vc-tree-row level-vcenter">
-                      <button
-                        className="vc-tree-toggle"
-                        onClick={() => toggleExpanded(expandedVCenters, setExpandedVCenters, vKey)}
-                      >
-                        {vExpanded ? "▾" : "▸"}
-                      </button>
-                      <TriCheckbox
-                        checked={vState.checked}
-                        indeterminate={vState.indeterminate}
-                        onChange={() => setHosts(vGroup.hosts, !vState.checked)}
-                      />
-                      <span
-                        style={{ cursor: "pointer" }}
-                        onClick={() => toggleExpanded(expandedVCenters, setExpandedVCenters, vKey)}
-                      >
-                        {vGroup.vcenterName}
-                      </span>
-                    </div>
-
-                    {vExpanded &&
-                      vGroup.clusters.map((cGroup) => {
-                        const cKey = `${vKey}::${cGroup.clusterName}`;
-                        const cExpanded = query ? true : expandedClusters.has(cKey);
-                        const cState = selectionState(cGroup.hosts);
-                        return (
-                          <div key={cKey}>
-                            <div className="vc-tree-row level-cluster">
-                              <button
-                                className="vc-tree-toggle"
-                                onClick={() =>
-                                  toggleExpanded(expandedClusters, setExpandedClusters, cKey)
-                                }
-                              >
-                                {cExpanded ? "▾" : "▸"}
-                              </button>
-                              <TriCheckbox
-                                checked={cState.checked}
-                                indeterminate={cState.indeterminate}
-                                onChange={() => setHosts(cGroup.hosts, !cState.checked)}
-                              />
-                              <span
-                                style={{ cursor: "pointer" }}
-                                onClick={() =>
-                                  toggleExpanded(expandedClusters, setExpandedClusters, cKey)
-                                }
-                              >
-                                {cGroup.clusterName}
-                              </span>
-                            </div>
-
-                            {cExpanded &&
-                              cGroup.hosts.map((host) => (
-                                <div key={host.id} className="vc-tree-row level-host">
-                                  <span style={{ width: 16 }} />
-                                  <input
-                                    type="checkbox"
-                                    checked={selected.has(host.id)}
-                                    onChange={() => toggleHost(host.id)}
-                                  />
-                                  <div className="vc-tree-host-cols">
-                                    <span>{host.host_name}</span>
-                                    <span>물리 코어 {host.total_cores ?? "-"}</span>
-                                    <span>{host.license_key ?? "-"}</span>
-                                    <span>
-                                      {host.license_category ? (
-                                        <LicenseTypeBadge licenseType={host.license_category} />
-                                      ) : (
-                                        "확인 불가"
-                                      )}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                          </div>
-                        );
-                      })}
-                  </div>
-                );
-              })}
-            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>
+                    <input type="checkbox" checked={allState.checked} onChange={toggleAll} />
+                  </th>
+                  <th>연결 이름</th>
+                  <th>vCenter 이름</th>
+                  <th>클러스터 이름</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clusterRows.map((row) => {
+                  const rowState = selectionState(row.hosts);
+                  return (
+                    <tr key={row.key}>
+                      <td>
+                        <TriCheckbox
+                          checked={rowState.checked}
+                          indeterminate={rowState.indeterminate}
+                          onChange={() => setHosts(row.hosts, !rowState.checked)}
+                        />
+                      </td>
+                      <td>{row.connectionName}</td>
+                      <td>{row.connectionHost}</td>
+                      <td>{row.clusterName}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
         </div>
         <div className="modal-actions">

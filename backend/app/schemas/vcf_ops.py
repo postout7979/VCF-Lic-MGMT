@@ -21,6 +21,7 @@ class VcfOpsCoreLicenseItemRead(BaseModel):
 
     id: int
     connection_name: str | None = None
+    connection_host: str | None = None
     license_key: str | None
     license_type: str | None
     license_status: str | None

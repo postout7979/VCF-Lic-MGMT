@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { assignVcfOpsItemsToProject, fetchVcfOpsItems } from "../api/client";
 import type { ProjectSummary, VcfOpsCoreLicenseItem } from "../types";
@@ -10,38 +10,16 @@ interface Props {
   onAssigned: () => void;
 }
 
-interface ConnectionGroup {
-  connectionName: string;
-  items: VcfOpsCoreLicenseItem[];
-}
-
 const SEARCH_FIELDS: { value: string; label: string; getValue: (item: VcfOpsCoreLicenseItem) => string | null }[] = [
-  { value: "connection_name", label: "연결", getValue: (item) => item.connection_name },
-  { value: "license_key", label: "License Key", getValue: (item) => item.license_key },
-  { value: "license_type", label: "License Type", getValue: (item) => item.license_type },
-  { value: "domain_name", label: "Domain", getValue: (item) => item.domain_name },
+  { value: "connection_name", label: "연결 이름", getValue: (item) => item.connection_name },
+  { value: "connection_host", label: "VCF Ops 이름", getValue: (item) => item.connection_host },
+  { value: "domain_name", label: "vCenter 이름", getValue: (item) => item.domain_name },
+  { value: "license_key", label: "License Name", getValue: (item) => item.license_key },
 ];
-
-function TriCheckbox({
-  checked,
-  indeterminate,
-  onChange,
-}: {
-  checked: boolean;
-  indeterminate: boolean;
-  onChange: () => void;
-}) {
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (ref.current) ref.current.indeterminate = indeterminate;
-  }, [indeterminate]);
-  return <input ref={ref} type="checkbox" checked={checked} onChange={onChange} />;
-}
 
 function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
   const [items, setItems] = useState<VcfOpsCoreLicenseItem[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +32,6 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
       .then((data) => {
         setItems(data);
         setSelected(new Set(data.filter((item) => item.project_id === project.id).map((item) => item.id)));
-        setExpanded(new Set(data.map((item) => item.connection_name ?? "(알 수 없음)")));
       })
       .catch(() => setError("할당 가능한 VCF 항목을 불러오지 못했습니다."))
       .finally(() => setLoading(false));
@@ -66,12 +43,12 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
   // though they're filtered out of view.
   const visibleItems = useMemo(() => items.filter((item) => isVcfAssignableLicense(item.license_key)), [items]);
 
-  const query = activeSearch.trim().toLowerCase();
   const filteredItems = useMemo(() => {
+    const query = activeSearch.trim().toLowerCase();
     if (!query) return visibleItems;
     const field = SEARCH_FIELDS.find((f) => f.value === searchField) ?? SEARCH_FIELDS[0];
     return visibleItems.filter((item) => (field.getValue(item) ?? "").toLowerCase().includes(query));
-  }, [visibleItems, query, searchField]);
+  }, [visibleItems, activeSearch, searchField]);
 
   function handleSearch() {
     setActiveSearch(searchInput.trim());
@@ -82,19 +59,12 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
     setActiveSearch("");
   }
 
-  const groups = useMemo<ConnectionGroup[]>(() => {
-    const byConnection = new Map<string, ConnectionGroup>();
-    for (const item of filteredItems) {
-      const connectionName = item.connection_name ?? "(알 수 없음)";
-      if (!byConnection.has(connectionName)) {
-        byConnection.set(connectionName, { connectionName, items: [] });
-      }
-      byConnection.get(connectionName)!.items.push(item);
-    }
-    return Array.from(byConnection.values());
-  }, [filteredItems]);
+  const allSelected = useMemo(
+    () => filteredItems.length > 0 && filteredItems.every((item) => selected.has(item.id)),
+    [filteredItems, selected],
+  );
 
-  function toggleItem(id: number) {
+  function toggle(id: number) {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -103,31 +73,14 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
     });
   }
 
-  function setGroupItems(groupItems: VcfOpsCoreLicenseItem[], select: boolean) {
+  function toggleAll() {
     setSelected((prev) => {
-      const next = new Set(prev);
-      for (const item of groupItems) {
-        if (select) next.add(item.id);
-        else next.delete(item.id);
+      if (allSelected) {
+        const next = new Set(prev);
+        for (const item of filteredItems) next.delete(item.id);
+        return next;
       }
-      return next;
-    });
-  }
-
-  function selectionState(groupItems: VcfOpsCoreLicenseItem[]): { checked: boolean; indeterminate: boolean } {
-    const selectedCount = groupItems.filter((item) => selected.has(item.id)).length;
-    return {
-      checked: selectedCount === groupItems.length && groupItems.length > 0,
-      indeterminate: selectedCount > 0 && selectedCount < groupItems.length,
-    };
-  }
-
-  function toggleExpanded(key: string) {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
+      return new Set([...prev, ...filteredItems.map((item) => item.id)]);
     });
   }
 
@@ -150,9 +103,8 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
       <div className="modal-box">
         <h2>{project.name} — VCF 할당</h2>
         <p className="text-muted">
-          "VMware Cloud Foundation", "VMware vSphere Foundation" 항목만 표시됩니다. VCF
-          Operations 연결을 체크하면 하위 라이센스 항목이 모두 선택됩니다. 연결 이름을 클릭하면
-          하위 목록이 펼쳐집니다.
+          "VMware Cloud Foundation", "VMware vSphere Foundation" 항목만 표시됩니다. 체크박스로
+          항목을 선택/해제한 뒤 저장을 눌러주세요.
         </p>
         {error && <p className="error-text">{error}</p>}
         {!loading && visibleItems.length > 0 && (
@@ -193,53 +145,43 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
             <p style={{ padding: 16 }} className="text-muted">
               "VMware Cloud Foundation" 또는 "VMware vSphere Foundation" 라이센스 항목이 없습니다.
             </p>
-          ) : groups.length === 0 ? (
+          ) : filteredItems.length === 0 ? (
             <p style={{ padding: 16 }} className="text-muted">
               검색 결과가 없습니다.
             </p>
           ) : (
-            <div className="vc-tree">
-              {groups.map((group) => {
-                const gKey = group.connectionName;
-                const gExpanded = query ? true : expanded.has(gKey);
-                const gState = selectionState(group.items);
-                return (
-                  <div key={gKey}>
-                    <div className="vc-tree-row level-vcenter">
-                      <button className="vc-tree-toggle" onClick={() => toggleExpanded(gKey)}>
-                        {gExpanded ? "▾" : "▸"}
-                      </button>
-                      <TriCheckbox
-                        checked={gState.checked}
-                        indeterminate={gState.indeterminate}
-                        onChange={() => setGroupItems(group.items, !gState.checked)}
+            <table>
+              <thead>
+                <tr>
+                  <th>
+                    <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+                  </th>
+                  <th>연결 이름</th>
+                  <th>VCF Ops 이름</th>
+                  <th>vCenter 이름</th>
+                  <th>License Name</th>
+                  <th>사용 코어 수</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredItems.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(item.id)}
+                        onChange={() => toggle(item.id)}
                       />
-                      <span style={{ cursor: "pointer" }} onClick={() => toggleExpanded(gKey)}>
-                        {group.connectionName}
-                      </span>
-                    </div>
-
-                    {gExpanded &&
-                      group.items.map((item) => (
-                        <div key={item.id} className="vc-tree-row level-host">
-                          <span style={{ width: 16 }} />
-                          <input
-                            type="checkbox"
-                            checked={selected.has(item.id)}
-                            onChange={() => toggleItem(item.id)}
-                          />
-                          <div className="vc-tree-host-cols">
-                            <span>{item.license_key ?? "-"}</span>
-                            <span>{item.license_type ?? "-"}</span>
-                            <span>할당 {item.core_capacity ?? "-"}</span>
-                            <span>사용 {item.core_used ?? "-"}</span>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                );
-              })}
-            </div>
+                    </td>
+                    <td>{item.connection_name ?? "-"}</td>
+                    <td>{item.connection_host ?? "-"}</td>
+                    <td>{item.domain_name ?? "-"}</td>
+                    <td>{item.license_key ?? "-"}</td>
+                    <td>{item.core_used ?? "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
         <div className="modal-actions">

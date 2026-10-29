@@ -45,48 +45,50 @@ function ProjectAdminTab() {
   return (
     <div>
       <div className="card" style={{ marginBottom: 20 }}>
-        <div className="form-row" style={{ marginBottom: 0 }}>
+        <div
+          className="form-row"
+          style={{ marginBottom: 0, justifyContent: "space-between", alignItems: "center" }}
+        >
+          <div className="form-row" style={{ marginBottom: 0, alignItems: "center" }}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => selectedProject && setSupplierAssignTarget(selectedProject)}
+              disabled={!selectedProject}
+            >
+              공급자 할당
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => selectedProject && setVCenterAssignTarget(selectedProject)}
+              disabled={!selectedProject}
+            >
+              vCenter 할당
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => selectedProject && setVcfAssignTarget(selectedProject)}
+              disabled={!selectedProject}
+            >
+              VCF 할당
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => selectedProject && setCspAssignTarget(selectedProject)}
+              disabled={!selectedProject}
+            >
+              CSP 할당
+            </button>
+            <span className="text-muted">
+              {selectedProject
+                ? `선택됨: ${selectedProject.name}`
+                : "할당할 프로젝트를 아래 목록에서 선택하세요."}
+            </span>
+          </div>
           <button className="btn" onClick={() => setShowCreateModal(true)}>
             프로젝트 생성
           </button>
         </div>
         {error && <p className="error-text">{error}</p>}
-      </div>
-
-      <div className="card" style={{ marginBottom: 20 }}>
-        <div className="form-row" style={{ marginBottom: 0, alignItems: "center" }}>
-          <span className="text-muted">
-            {selectedProject ? `선택됨: ${selectedProject.name}` : "할당할 프로젝트를 아래 목록에서 선택하세요."}
-          </span>
-          <button
-            className="btn btn-secondary"
-            onClick={() => selectedProject && setSupplierAssignTarget(selectedProject)}
-            disabled={!selectedProject}
-          >
-            공급자 할당
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => selectedProject && setVCenterAssignTarget(selectedProject)}
-            disabled={!selectedProject}
-          >
-            vCenter 할당
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => selectedProject && setVcfAssignTarget(selectedProject)}
-            disabled={!selectedProject}
-          >
-            VCF 할당
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => selectedProject && setCspAssignTarget(selectedProject)}
-            disabled={!selectedProject}
-          >
-            CSP 할당
-          </button>
-        </div>
       </div>
 
       <div className="card">
@@ -97,29 +99,30 @@ function ProjectAdminTab() {
                 <th rowSpan={2}>프로젝트명</th>
                 <th rowSpan={2}>위치</th>
                 <th rowSpan={2}>생성일</th>
-                <th colSpan={3} style={{ textAlign: "center" }}>
+                <th colSpan={2} style={{ textAlign: "center" }}>
                   공급자 데이터
+                </th>
+                <th colSpan={2} style={{ textAlign: "center" }}>
+                  CSP 데이터
                 </th>
                 <th colSpan={3} style={{ textAlign: "center" }}>
                   vCenter 데이터
                 </th>
-                <th colSpan={3} style={{ textAlign: "center" }}>
+                <th colSpan={2} style={{ textAlign: "center" }}>
                   VCF 데이터
                 </th>
-                <th style={{ textAlign: "center" }}>CSP 데이터</th>
                 <th rowSpan={2}></th>
               </tr>
               <tr>
-                <th>할당 항목 수</th>
                 <th>Perpetual 합계</th>
                 <th>Subscription 합계</th>
+                <th>Core 합계</th>
+                <th>Processor 합계</th>
                 <th>vCenter 수</th>
                 <th>Perpetual 수량</th>
                 <th>Term 수량</th>
-                <th>라이센스 항목 수</th>
                 <th>할당 코어 수</th>
                 <th>사용 중 코어 수</th>
-                <th>할당 항목 수</th>
               </tr>
             </thead>
             <tbody>
@@ -134,16 +137,15 @@ function ProjectAdminTab() {
                   <td>{project.name}</td>
                   <td>{project.location || "-"}</td>
                   <td>{new Date(project.created_at).toLocaleDateString()}</td>
-                  <td>{project.item_count}</td>
                   <td>{project.perpetual_quantity.toLocaleString()}</td>
                   <td>{project.subscription_quantity.toLocaleString()}</td>
+                  <td>{project.csp_core_sum.toLocaleString()}</td>
+                  <td>{project.csp_processor_sum.toLocaleString()}</td>
                   <td>{project.vcenter_count}</td>
                   <td>{project.vcenter_perpetual_quantity.toLocaleString()}</td>
                   <td>{project.vcenter_term_quantity.toLocaleString()}</td>
-                  <td>{project.vcf_license_count}</td>
                   <td>{project.vcf_core_capacity.toLocaleString()}</td>
                   <td>{project.vcf_core_used.toLocaleString()}</td>
-                  <td>{project.csp_license_count}</td>
                   <td>
                     <div className="form-row" style={{ marginBottom: 0 }}>
                       <button

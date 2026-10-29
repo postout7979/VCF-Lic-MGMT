@@ -8,11 +8,11 @@ import {
 } from "../../api/client";
 import DeleteUploadsModal from "../../components/DeleteUploadsModal";
 import LicenseTypeBadge from "../../components/LicenseTypeBadge";
+import ListControls from "../../components/ListControls";
 import Pagination from "../../components/Pagination";
+import { PAGE_SIZE_OPTIONS, type FilterCondition } from "../../hooks/useListControls";
 import { SEARCHABLE_FIELDS } from "../../types";
 import type { LicenseItem, UploadResult } from "../../types";
-
-const PAGE_SIZE = 20;
 
 const COLUMNS: { field: string; label: string; sortable: boolean }[] = [
   { field: "upload_name", label: "업로드 이름", sortable: true },
@@ -40,9 +40,8 @@ function SupplierDataTab() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
-  const [searchField, setSearchField] = useState(SEARCHABLE_FIELDS[0].value);
-  const [searchInput, setSearchInput] = useState("");
-  const [activeSearch, setActiveSearch] = useState("");
+  const [pageSize, setPageSizeState] = useState<number>(PAGE_SIZE_OPTIONS[0]);
+  const [filters, setFiltersState] = useState<FilterCondition[]>([]);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [uploadName, setUploadName] = useState("");
@@ -53,12 +52,11 @@ function SupplierDataTab() {
   const [result, setResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function loadItems(targetPage: number, query: string) {
+  function loadItems(targetPage: number) {
     searchSupplierData({
       page: targetPage,
-      pageSize: PAGE_SIZE,
-      searchField,
-      searchQuery: query,
+      pageSize,
+      filters,
       sortField: sortField ?? undefined,
       sortOrder,
     })
@@ -72,18 +70,17 @@ function SupplierDataTab() {
   }
 
   useEffect(() => {
-    loadItems(page, activeSearch);
+    loadItems(page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, activeSearch, searchField, sortField, sortOrder]);
+  }, [page, filters, pageSize, sortField, sortOrder]);
 
-  function handleSearch() {
+  function handleFiltersChange(next: FilterCondition[]) {
+    setFiltersState(next.filter((f) => f.value.trim() !== ""));
     setPage(1);
-    setActiveSearch(searchInput.trim());
   }
 
-  function handleClearSearch() {
-    setSearchInput("");
-    setActiveSearch("");
+  function handlePageSizeChange(size: number) {
+    setPageSizeState(size);
     setPage(1);
   }
 
@@ -110,7 +107,7 @@ function SupplierDataTab() {
     try {
       const res = await uploadSupplierData(file, uploadName.trim());
       setResult(res);
-      loadItems(1, activeSearch);
+      loadItems(1);
       setPage(1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "업로드에 실패했습니다.");
@@ -126,10 +123,9 @@ function SupplierDataTab() {
     setError(null);
     try {
       await deleteAllSupplierData();
-      setActiveSearch("");
-      setSearchInput("");
+      setFiltersState([]);
       setPage(1);
-      loadItems(1, "");
+      loadItems(1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "삭제에 실패했습니다.");
     } finally {
@@ -149,7 +145,7 @@ function SupplierDataTab() {
     setError(null);
     try {
       await deleteExpiredSupplierData();
-      loadItems(1, activeSearch);
+      loadItems(1);
       setPage(1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "삭제에 실패했습니다.");
@@ -204,34 +200,15 @@ function SupplierDataTab() {
       </div>
 
       <div className="card">
-        <div className="search-bar">
-          <select value={searchField} onChange={(e) => setSearchField(e.target.value)}>
-            {SEARCHABLE_FIELDS.map((field) => (
-              <option key={field.value} value={field.value}>
-                {field.label}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            placeholder="검색어를 입력하세요"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          />
-          <button className="btn" onClick={handleSearch}>
-            검색
-          </button>
-          {activeSearch && (
-            <button className="btn btn-secondary" onClick={handleClearSearch}>
-              초기화
-            </button>
-          )}
-        </div>
-
-        <p className="text-muted" style={{ marginTop: 0 }}>
-          총 {total.toLocaleString()}건 {activeSearch && `(검색 결과)`}
-        </p>
+        <ListControls
+          fields={SEARCHABLE_FIELDS}
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          pageSize={pageSize}
+          onPageSizeChange={handlePageSizeChange}
+          total={total}
+          placeholder="검색어를 입력하세요"
+        />
         <div style={{ overflowX: "auto" }}>
           <table>
             <thead>
@@ -281,7 +258,7 @@ function SupplierDataTab() {
       {showDeleteUploads && (
         <DeleteUploadsModal
           onClose={() => setShowDeleteUploads(false)}
-          onDeleted={() => loadItems(1, activeSearch)}
+          onDeleted={() => loadItems(1)}
         />
       )}
     </div>

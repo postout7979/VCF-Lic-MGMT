@@ -37,6 +37,8 @@ class ProjectSummary(BaseModel):
     csp_license_count: int = 0
     csp_core_quantity: int = 0
     csp_core_quantity_expired: int = 0
+    csp_core_sum: int = 0
+    csp_processor_sum: int = 0
     user_count: int = 0
 
 

@@ -30,6 +30,18 @@ def _quantity_sum(db: Session, project_id: int, license_type: str) -> int:
     return int(result or 0)
 
 
+def _csp_quantity_sum(db: Session, project_id: int, unit: str) -> int:
+    result = (
+        db.query(func.coalesce(func.sum(CspLicenseItem.quantity), 0))
+        .filter(
+            CspLicenseItem.project_id == project_id,
+            func.upper(CspLicenseItem.unit) == unit.upper(),
+        )
+        .scalar()
+    )
+    return int(result or 0)
+
+
 def _to_summary(db: Session, project: Project) -> ProjectSummary:
     item_count = (
         db.query(func.count(LicenseItem.id))
@@ -131,6 +143,8 @@ def _to_summary(db: Session, project: Project) -> ProjectSummary:
         csp_license_count=int(csp_license_count),
         csp_core_quantity=int(csp_core_quantity),
         csp_core_quantity_expired=int(csp_core_quantity_expired),
+        csp_core_sum=_csp_quantity_sum(db, project.id, "Core"),
+        csp_processor_sum=_csp_quantity_sum(db, project.id, "Processor"),
         user_count=int(user_count),
         item_count=item_count,
     )

@@ -58,6 +58,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     if user.password != payload.password:
         raise HTTPException(status_code=401, detail="비밀번호가 올바르지 않습니다.")
     user.session_token = generate_session_token()
+    user.session_last_active_at = datetime.utcnow()
     db.commit()
     db.refresh(user)
     return LoginResponse(**_current_user_fields(user), token=user.session_token)
