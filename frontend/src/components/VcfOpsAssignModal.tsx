@@ -37,7 +37,8 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
 
   useEffect(() => {
     fetchVcfOpsItems({ assignableForProject: project.id })
@@ -50,7 +51,7 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
       .finally(() => setLoading(false));
   }, [project.id]);
 
-  const query = search.trim().toLowerCase();
+  const query = activeSearch.trim().toLowerCase();
   const filteredItems = useMemo(() => {
     if (!query) return items;
     return items.filter((item) =>
@@ -59,6 +60,15 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
         .some((field) => field!.toLowerCase().includes(query)),
     );
   }, [items, query]);
+
+  function handleSearch() {
+    setActiveSearch(searchInput.trim());
+  }
+
+  function handleClearSearch() {
+    setSearchInput("");
+    setActiveSearch("");
+  }
 
   const groups = useMemo<ConnectionGroup[]>(() => {
     const byConnection = new Map<string, ConnectionGroup>();
@@ -137,9 +147,18 @@ function VcfOpsAssignModal({ project, onClose, onAssigned }: Props) {
             <input
               type="text"
               placeholder="연결 / License Key / License Type / Domain 검색"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
+            <button className="btn" onClick={handleSearch}>
+              검색
+            </button>
+            {activeSearch && (
+              <button className="btn btn-secondary" onClick={handleClearSearch}>
+                초기화
+              </button>
+            )}
           </div>
         )}
         <div className="modal-scroll">

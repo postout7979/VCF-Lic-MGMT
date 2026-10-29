@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { assignItemsToProject, fetchSupplierData } from "../api/client";
 import type { LicenseItem, ProjectSummary } from "../types";
 import LicenseTypeBadge from "./LicenseTypeBadge";
+import Pagination from "./Pagination";
 
 interface Props {
   project: ProjectSummary;
@@ -10,13 +11,17 @@ interface Props {
   onAssigned: () => void;
 }
 
+const PAGE_SIZE = 20;
+
 function SupplierAssignModal({ project, onClose, onAssigned }: Props) {
   const [items, setItems] = useState<LicenseItem[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     fetchSupplierData({ assignableForProject: project.id })
@@ -29,19 +34,37 @@ function SupplierAssignModal({ project, onClose, onAssigned }: Props) {
   }, [project.id]);
 
   const filteredItems = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = activeSearch.trim().toLowerCase();
     if (!query) return items;
     return items.filter((item) =>
       [item.enduser_account_name, item.product_name, item.erp_site_id, item.license_key]
         .filter(Boolean)
         .some((field) => field!.toLowerCase().includes(query)),
     );
-  }, [items, search]);
+  }, [items, activeSearch]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
+
+  const pagedItems = useMemo(
+    () => filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filteredItems, page],
+  );
 
   const allSelected = useMemo(
     () => filteredItems.length > 0 && filteredItems.every((item) => selected.has(item.id)),
     [filteredItems, selected],
   );
+
+  function handleSearch() {
+    setActiveSearch(searchInput.trim());
+    setPage(1);
+  }
+
+  function handleClearSearch() {
+    setSearchInput("");
+    setActiveSearch("");
+    setPage(1);
+  }
 
   function toggle(id: number) {
     setSelected((prev) => {
@@ -94,9 +117,18 @@ function SupplierAssignModal({ project, onClose, onAssigned }: Props) {
             <input
               type="text"
               placeholder="Enduser Customer Name / Product Name / ERP Site ID / License Key 검색"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
+            <button className="btn" onClick={handleSearch}>
+              검색
+            </button>
+            {activeSearch && (
+              <button className="btn btn-secondary" onClick={handleClearSearch}>
+                초기화
+              </button>
+            )}
           </div>
         )}
         <div className="modal-scroll">
@@ -125,7 +157,7 @@ function SupplierAssignModal({ project, onClose, onAssigned }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {filteredItems.map((item) => (
+                {pagedItems.map((item) => (
                   <tr key={item.id}>
                     <td>
                       <input
@@ -147,6 +179,7 @@ function SupplierAssignModal({ project, onClose, onAssigned }: Props) {
             </table>
           )}
         </div>
+        <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
         <div className="modal-actions">
           <button className="btn btn-secondary" onClick={onClose} disabled={submitting}>
             닫기

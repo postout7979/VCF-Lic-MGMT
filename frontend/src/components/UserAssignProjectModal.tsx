@@ -15,7 +15,8 @@ function UserAssignProjectModal({ user, onClose, onAssigned }: Props) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
 
   useEffect(() => {
     fetchProjects()
@@ -25,10 +26,19 @@ function UserAssignProjectModal({ user, onClose, onAssigned }: Props) {
   }, []);
 
   const filteredProjects = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = activeSearch.trim().toLowerCase();
     if (!query) return projects;
     return projects.filter((project) => project.name.toLowerCase().includes(query));
-  }, [projects, search]);
+  }, [projects, activeSearch]);
+
+  function handleSearch() {
+    setActiveSearch(searchInput.trim());
+  }
+
+  function handleClearSearch() {
+    setSearchInput("");
+    setActiveSearch("");
+  }
 
   const allSelected = useMemo(
     () => filteredProjects.length > 0 && filteredProjects.every((project) => selected.has(project.id)),
@@ -83,9 +93,18 @@ function UserAssignProjectModal({ user, onClose, onAssigned }: Props) {
             <input
               type="text"
               placeholder="프로젝트명 검색"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
+            <button className="btn" onClick={handleSearch}>
+              검색
+            </button>
+            {activeSearch && (
+              <button className="btn btn-secondary" onClick={handleClearSearch}>
+                초기화
+              </button>
+            )}
           </div>
         )}
         <div className="modal-scroll">
